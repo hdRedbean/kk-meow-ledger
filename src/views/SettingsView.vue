@@ -130,12 +130,16 @@ async function clearAllData() {
         <img style="width: 26px; height: 26px;" src="/c1.png" alt="">
         <span>喵喵记账 v1.0.0</span>
       </p>
-      <p>所有数据仅存储在本地浏览器中</p>
+      <!--<p>所有数据仅存储在本地浏览器中</p>-->
     </div>
   </div>
 </template>
 
 <style scoped>
+.page-container {
+  position: relative;
+}
+
 .page-title {
   font-size: 20px;
   font-weight: 700;
@@ -197,8 +201,12 @@ async function clearAllData() {
 }
 
 .app-info {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
   text-align: center;
-  margin-top: 40px;
+  /*margin-top: 40px;*/
   padding: 20px;
   font-size: 12px;
   color: var(--cat-text-light);

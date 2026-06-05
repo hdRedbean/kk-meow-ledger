@@ -89,7 +89,7 @@ async function toggleHidden(cat: CategoryDTO) {
       </div>
     </div>
 
-    <div class="type-section">
+    <div class="type-section" style="margin-bottom: 0;">
       <div class="section-header">
         <h4 class="section-title">收入分类</h4>
         <button class="cat-btn cat-btn-sm" @click="openAdd('income')">＋ 添加</button>

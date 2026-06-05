@@ -28,6 +28,17 @@ const categoryId = ref<number>(0)
 const accountId = ref<number>(0)
 const date = ref(getToday())
 const note = ref('')
+const showDatePicker = ref(false)
+const datePickerValue = computed(() => {
+  const [y, m, d] = date.value.split('-').map(Number)
+  return [String(y), String(m), String(d)]
+})
+
+function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
+  const [y, m, d] = selectedValues.map(Number)
+  date.value = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  showDatePicker.value = false
+}
 
 const expenseCategories = computed(() => categoryStore.getByType('expense'))
 const incomeCategories = computed(() => categoryStore.getByType('income'))
@@ -182,8 +193,17 @@ function onClose() {
 
         <div class="form-row">
           <label>日期</label>
-          <input v-model="date" type="date" class="cat-input form-input" />
+          <span class="cat-input form-input date-trigger" @click="showDatePicker = true">{{ date }}</span>
         </div>
+        <van-popup v-model:show="showDatePicker" position="bottom" round>
+          <van-date-picker
+            :model-value="datePickerValue"
+            title="选择日期"
+            :columns-type="['year', 'month', 'day']"
+            @confirm="onDateConfirm"
+            @cancel="showDatePicker = false"
+          />
+        </van-popup>
 
         <div class="form-row">
           <label>备注</label>
@@ -372,6 +392,12 @@ function onClose() {
 .form-input {
   flex: 1;
   min-width: 0;
+}
+
+.date-trigger {
+  cursor: pointer;
+  color: var(--cat-text);
+  padding: 8px 12px;
 }
 
 .account-chips {

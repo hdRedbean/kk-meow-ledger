@@ -14,6 +14,13 @@ const categoryStore = useCategoryStore()
 
 const currentMonth = ref(getCurrentMonth())
 const currentYear = ref(new Date().getFullYear())
+const showYearPicker = ref(false)
+const yearPickerDate = computed(() => [String(currentYear.value)])
+
+function onYearConfirm({ selectedValues }: { selectedValues: string[] }) {
+  currentYear.value = Number(selectedValues[0])
+  showYearPicker.value = false
+}
 const statsType = ref<'month' | 'year'>('month')
 const chartBillType = ref<BillType>('expense')
 
@@ -29,8 +36,14 @@ let pieChart: echarts.ECharts | null = null
 let lineChart: echarts.ECharts | null = null
 let barChart: echarts.ECharts | null = null
 
+function disposeChart(chart: echarts.ECharts | null) {
+  if (chart && !chart.getDom()?.isConnected) { chart.dispose(); return null }
+  return chart
+}
+
 function renderPieChart() {
   if (!pieChartRef.value) return
+  pieChart = disposeChart(pieChart)
   if (!pieChart) pieChart = echarts.init(pieChartRef.value)
   const data = categoryStats.value.map((s) => ({ name: `${s.categoryIcon} ${s.categoryName}`, value: s.amount }))
   if (data.length === 0) { pieChart.clear(); return }
@@ -43,6 +56,7 @@ function renderPieChart() {
 
 function renderLineChart() {
   if (!lineChartRef.value) return
+  lineChart = disposeChart(lineChart)
   if (!lineChart) lineChart = echarts.init(lineChartRef.value)
   const stats = dailyStats.value
   lineChart.setOption({
@@ -59,6 +73,7 @@ function renderLineChart() {
 
 function renderBarChart() {
   if (!barChartRef.value) return
+  barChart = disposeChart(barChart)
   if (!barChart) barChart = echarts.init(barChartRef.value)
   const stats = yearStats.value
   barChart.setOption({
@@ -135,7 +150,7 @@ window.addEventListener('resize', () => { pieChart?.resize(); lineChart?.resize(
             <button :class="['mini-btn', { active: chartBillType === 'income' }]" @click="chartBillType = 'income'">收入</button>
           </div>
         </div>
-        <div ref="pieChartRef" class="chart-area"></div>
+        <div ref="pieChartRef" v-show="categoryStats.length > 0" class="chart-area"></div>
         <div v-if="categoryStats.length > 0" class="category-rank">
           <div v-for="s in categoryStats" :key="s.categoryId" class="rank-item">
             <span class="rank-icon">{{ s.categoryIcon }}</span>
@@ -157,8 +172,17 @@ window.addEventListener('resize', () => { pieChart?.resize(); lineChart?.resize(
     <template v-else>
       <div class="year-picker" style="margin-top: 12px">
         <button class="arrow-btn" @click="currentYear--">◀</button>
-        <span class="year-label">{{ currentYear }}年</span>
+        <span class="year-label" @click="showYearPicker = true">{{ currentYear }}年</span>
         <button class="arrow-btn" @click="currentYear++">▶</button>
+        <van-popup v-model:show="showYearPicker" position="bottom" round>
+          <van-date-picker
+            :model-value="yearPickerDate"
+            title="选择年份"
+            :columns-type="['year']"
+            @confirm="onYearConfirm"
+            @cancel="showYearPicker = false"
+          />
+        </van-popup>
       </div>
       <div class="cat-card" style="margin-top: 12px">
         <h4 class="chart-title">年度收支趋势</h4>

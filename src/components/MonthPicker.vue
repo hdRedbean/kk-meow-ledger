@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+
 const props = defineProps<{
   modelValue: string
 }>()
@@ -6,6 +8,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [val: string]
 }>()
+
+const showPicker = ref(false)
+const pickerDate = computed(() => {
+  const [y, m] = props.modelValue.split('-').map(Number)
+  return [String(y), String(m)]
+})
 
 function prev() {
   const [y, m] = props.modelValue.split('-').map(Number)
@@ -19,19 +27,29 @@ function next() {
   emit('update:modelValue', `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
 }
 
-function current() {
-  const now = new Date()
-  emit('update:modelValue', `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+function onConfirm({ selectedValues }: { selectedValues: string[] }) {
+  const [y, m] = selectedValues.map(Number)
+  emit('update:modelValue', `${y}-${String(m).padStart(2, '0')}`)
+  showPicker.value = false
 }
 </script>
 
 <template>
   <div class="month-picker">
     <button class="arrow-btn" @click="prev">◀</button>
-    <button class="month-label" @click="current">
+    <button class="month-label" @click="showPicker = true">
       {{ modelValue.replace('-', '年') }}月
     </button>
     <button class="arrow-btn" @click="next">▶</button>
+    <van-popup v-model:show="showPicker" position="bottom" round>
+      <van-date-picker
+        :model-value="pickerDate"
+        title="选择年月"
+        :columns-type="['year', 'month']"
+        @confirm="onConfirm"
+        @cancel="showPicker = false"
+      />
+    </van-popup>
   </div>
 </template>
 
