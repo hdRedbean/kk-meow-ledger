@@ -11,7 +11,7 @@
  Target Server Version : 50731
  File Encoding         : 65001
 
- Date: 05/06/2026 17:40:51
+ Date: 05/06/2026 17:55:34
 */
 
 SET NAMES utf8mb4;
@@ -159,7 +159,7 @@ CREATE TABLE `chat_message`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_conversation_id`(`conversation_id`) USING BTREE,
   CONSTRAINT `fk_msg_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversation` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'AI聊天消息' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 12 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'AI聊天消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of chat_message
@@ -173,5 +173,7 @@ INSERT INTO `chat_message` VALUES (6, 5, 'user', '帮我记一笔餐饮支出50�
 INSERT INTO `chat_message` VALUES (7, 5, 'assistant', '已记好啦！📝\n\n| 项目 | 详情 |\n|------|------|\n| 🏷️ 分类 | 餐饮 |\n| 💰 金额 | ¥50.00 |\n| 📅 日期 | 2026-06-05 |\n| 📌 类型 | 支出 |\n\n还有什么需要我帮忙的吗？比如查一下这个月的餐饮花了多少，或者看看预算还剩多少～ 🐱', '2026-06-05 17:26:19.974');
 INSERT INTO `chat_message` VALUES (8, 5, 'user', '我今天买了杯咖啡，8块钱', '2026-06-05 17:28:45.228');
 INSERT INTO `chat_message` VALUES (9, 5, 'assistant', '记好啦！✅\n\n| 项目 | 详情 |\n|------|------|\n| 🏷️ 分类 | 餐饮 |\n| 💰 金额 | ¥8.00 |\n| 📅 日期 | 2026-06-05 |\n| 📝 备注 | 买咖啡 |\n\n今天餐饮已经记了两笔啦，合计 ¥58.00～ 继续享受你的咖啡吧 ☕😺', '2026-06-05 17:28:51.585');
+INSERT INTO `chat_message` VALUES (10, 4, 'user', '你好', '2026-06-05 17:47:02.012');
+INSERT INTO `chat_message` VALUES (11, 4, 'assistant', '喵～你好呀！😸 又见面啦！\n\n有什么我可以帮你的吗？比如：\n\n- 想看看**这个月的账目**情况？\n- 要**记一笔账**？\n- 还是想查查**某个分类花了多少**？\n\n尽管说，我随时待命～🐾', '2026-06-05 17:47:05.391');
 
 SET FOREIGN_KEY_CHECKS = 1;
