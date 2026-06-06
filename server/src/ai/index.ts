@@ -203,12 +203,7 @@ export async function chat(userMessage: string, history: { role: string; content
   assistantContent: string
   toolCallsLog: { name: string; args: any; result: any }[]
 }> {
-  const messages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...history.map((m) => ({ role: m.role as any, content: m.content })),
-    { role: 'user', content: userMessage },
-  ]
-
+  const messages = buildMessages(userMessage, history)
   const toolCallsLog: { name: string; args: any; result: any }[] = []
   let assistantContent = ''
 
@@ -245,4 +240,81 @@ export async function chat(userMessage: string, history: { role: string; content
   }
 
   return { assistantContent, toolCallsLog }
+}
+
+export async function streamChat(
+  userMessage: string,
+  history: { role: string; content: string }[],
+  onChunk: (text: string) => void,
+): Promise<string> {
+  const messages = buildMessages(userMessage, history)
+
+  for (let round = 0; round < 5; round++) {
+    const stream = await client.chat.completions.create({
+      model: process.env.AI_MODEL || 'deepseek-chat',
+      messages,
+      tools: toolDefinitions,
+      tool_choice: 'auto',
+      stream: true,
+    })
+
+    let toolCalls: { id: string; name: string; arguments: string }[] = []
+    let hasToolCalls = false
+    let content = ''
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta
+      if (!delta) continue
+
+      if (delta.content) {
+        content += delta.content
+        onChunk(delta.content)
+      }
+
+      if (delta.tool_calls) {
+        hasToolCalls = true
+        for (const tc of delta.tool_calls) {
+          const idx = tc.index ?? 0
+          if (!toolCalls[idx]) {
+            toolCalls[idx] = { id: '', name: '', arguments: '' }
+          }
+          if (tc.id) toolCalls[idx].id = tc.id
+          if (tc.function?.name) toolCalls[idx].name = tc.function.name
+          if (tc.function?.arguments) toolCalls[idx].arguments += tc.function.arguments
+        }
+      }
+    }
+
+    if (!hasToolCalls) return content
+
+    messages.push({
+      role: 'assistant',
+      content: content || null,
+      tool_calls: toolCalls.map((tc) => ({
+        id: tc.id,
+        type: 'function' as const,
+        function: { name: tc.name, arguments: tc.arguments },
+      })),
+    } as any)
+
+    for (const tc of toolCalls) {
+      const args = JSON.parse(tc.arguments)
+      const result = await executeTool(tc.name, args)
+      messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: JSON.stringify(result),
+      } as any)
+    }
+  }
+
+  return ''
+}
+
+function buildMessages(userMessage: string, history: { role: string; content: string }[]): OpenAI.ChatCompletionMessageParam[] {
+  return [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history.map((m) => ({ role: m.role as any, content: m.content })),
+    { role: 'user', content: userMessage },
+  ]
 }

@@ -31,8 +31,8 @@ async function selectConversation(id: number) {
 
 async function newConversation() {
   try {
-    const res = await api.createConversation()
-    activeConvId.value = res.id
+    // const res = await api.createConversation()
+    activeConvId.value = null
     messages.value = []
     showSidebar.value = false
     await loadConversations()
@@ -54,10 +54,6 @@ async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isLoading.value) return
 
-  if (!activeConvId.value) {
-    await newConversation()
-  }
-
   messages.value.push({
     id: Date.now(),
     role: 'user',
@@ -75,21 +71,26 @@ async function sendMessage() {
     content: '',
     createdAt: Date.now(),
   })
+  const msgIndex = messages.value.length - 1
   await nextTick()
   scrollToBottom()
 
   try {
-    const res = await api.sendMessage(text, activeConvId.value || undefined)
-    activeConvId.value = res.conversationId
-    messages.value[messages.value.length - 1] = res.assistantMessage
+    const { conversationId } = await api.sendMessageStream(
+      text,
+      activeConvId.value,
+      (chunk) => {
+        messages.value[msgIndex].content += chunk
+        scrollToBottom()
+      },
+      (id) => {
+        activeConvId.value = id
+      },
+    )
+    activeConvId.value = conversationId
     await loadConversations()
   } catch (e: any) {
-    messages.value[messages.value.length - 1] = {
-      id: Date.now(),
-      role: 'assistant',
-      content: '抱歉，出了点问题，请稍后再试 😿\n' + (e.message || ''),
-      createdAt: Date.now(),
-    }
+    messages.value[msgIndex].content = '抱歉，出了点问题，请稍后再试 😿\n' + (e.message || '')
   } finally {
     isLoading.value = false
     await nextTick()

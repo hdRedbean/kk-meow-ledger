@@ -137,6 +137,7 @@ async function clearAllData() {
 
 <style scoped>
 .page-container {
+  padding-bottom: 20px;
   position: relative;
 }
 
@@ -201,10 +202,6 @@ async function clearAllData() {
 }
 
 .app-info {
-  position: absolute;
-  bottom: 0px;
-  left: 50%;
-  transform: translateX(-50%);
   text-align: center;
   /*margin-top: 40px;*/
   padding: 20px;

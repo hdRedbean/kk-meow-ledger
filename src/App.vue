@@ -58,6 +58,7 @@ function openAddBill(billId?: number) {
 function onBillSaved() {
   showAddBill.value = false
   editingBillId.value = undefined
+  billStore.version++
 }
 
 onMounted(async () => {

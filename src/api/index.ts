@@ -165,3 +165,55 @@ export const getMessages = (conversationId: number) =>
 
 export const sendMessage = (message: string, conversationId?: number) =>
   http.post<{ conversationId: number; assistantMessage: ChatMessageDTO }>('/chat', { message, conversationId }).then((r) => r.data)
+
+export async function sendMessageStream(
+  message: string,
+  conversationId: number | null,
+  onChunk: (text: string) => void,
+  onConversationId: (id: number) => void,
+): Promise<{ conversationId: number; fullContent: string }> {
+  const res = await fetch('/api/chat/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, conversationId }),
+  })
+
+  if (!res.ok || !res.body) {
+    throw new Error(`Stream request failed: ${res.status}`)
+  }
+
+  let convId = conversationId
+  let fullContent = ''
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      try {
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'conversationId') {
+          convId = data.conversationId
+          onConversationId(data.conversationId)
+        } else if (data.type === 'chunk') {
+          fullContent += data.content
+          onChunk(data.content)
+        } else if (data.type === 'error') {
+          throw new Error(data.error)
+        }
+      } catch (e: any) {
+        if (e.message && !e.message.includes('JSON')) throw e
+      }
+    }
+  }
+
+  return { conversationId: convId!, fullContent }
+}

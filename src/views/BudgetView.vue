@@ -137,7 +137,7 @@ watch(currentMonth, loadMonthData, { immediate: true })
 .no-budget-tip { font-size: 13px; color: var(--cat-text-light); text-align: center; padding: 16px 0; }
 .category-budget-list { display: flex; flex-direction: column; gap: 16px; }
 .category-budget-item { position: relative; }
-.remove-btn { position: absolute; top: 0; right: 0; width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--cat-secondary); color: var(--cat-text-light); font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.remove-btn { position: absolute; top: -25px; right: -25px; width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--cat-secondary); color: var(--cat-text-light); font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .popup-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--cat-text); }
 .category-select { display: flex; flex-wrap: wrap; gap: 6px; }
 .cat-select-btn { padding: 6px 12px; border-radius: 16px; border: 1.5px solid var(--cat-border); background: transparent; font-size: 13px; color: var(--cat-text-light); cursor: pointer; transition: all 0.15s; }

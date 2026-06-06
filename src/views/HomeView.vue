@@ -35,6 +35,7 @@ async function loadMonthData() {
 }
 
 watch(currentMonth, loadMonthData, { immediate: true })
+watch(() => billStore.version, loadMonthData)
 </script>
 
 <template>

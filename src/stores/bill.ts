@@ -7,6 +7,7 @@ import { useCategoryStore } from './category'
 export const useBillStore = defineStore('bill', () => {
   const bills = ref<api.BillDTO[]>([])
   const loaded = ref(false)
+  const version = ref(0)
 
   async function load() {
     bills.value = await api.getBills()
@@ -17,6 +18,7 @@ export const useBillStore = defineStore('bill', () => {
     const res = await api.createBill(bill)
     bills.value.unshift({ ...bill, id: res.id, createdAt: Date.now() })
     bills.value.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
+    version.value++
     return res.id
   }
 
@@ -26,11 +28,13 @@ export const useBillStore = defineStore('bill', () => {
     if (idx !== -1) {
       bills.value[idx] = { ...bills.value[idx], ...data }
     }
+    version.value++
   }
 
   async function remove(id: number) {
     await api.deleteBill(id)
     bills.value = bills.value.filter((b) => b.id !== id)
+    version.value++
   }
 
   async function fetchByMonth(month: string): Promise<api.BillDTO[]> {
@@ -68,7 +72,7 @@ export const useBillStore = defineStore('bill', () => {
   }
 
   return {
-    bills, loaded, load, add, update, remove,
+    bills, loaded, version, load, add, update, remove,
     fetchByMonth, groupByDays,
     getMonthStats, getCategoryStats, getDailyStats, getYearMonthStats,
   }

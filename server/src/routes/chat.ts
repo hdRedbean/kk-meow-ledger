@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
-import { chat } from '../ai/index.js'
+import { chat, streamChat } from '../ai/index.js'
 
 const router = Router()
 
@@ -97,6 +97,60 @@ router.post('/', async (req, res) => {
   } catch (e: any) {
     console.error('Chat error:', e)
     res.status(500).json({ error: e.message || 'AI service error' })
+  }
+})
+
+router.post('/stream', async (req, res) => {
+  const { message, conversationId } = req.body
+  if (!message) {
+    res.status(400).json({ error: 'message is required' })
+    return
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
+  res.flushHeaders()
+
+  try {
+    let convId = conversationId
+    if (!convId) {
+      const [result] = await pool.query('INSERT INTO chat_conversation (title) VALUES (?)', [message.slice(0, 50)])
+      convId = (result as any).insertId
+      res.write(`data: ${JSON.stringify({ type: 'conversationId', conversationId: convId })}\n\n`)
+    }
+
+    await pool.query(
+      'INSERT INTO chat_message (conversation_id, role, content) VALUES (?, ?, ?)',
+      [convId, 'user', message],
+    )
+
+    const [historyRows] = await pool.query(
+      'SELECT role, content FROM chat_message WHERE conversation_id = ? ORDER BY id ASC',
+      [convId],
+    )
+    const history = (historyRows as any[]).slice(0, -1).map((r) => ({ role: r.role, content: r.content }))
+
+    const fullContent = await streamChat(message, history, (text) => {
+      res.write(`data: ${JSON.stringify({ type: 'chunk', content: text })}\n\n`)
+    })
+
+    await pool.query(
+      'INSERT INTO chat_message (conversation_id, role, content) VALUES (?, ?, ?)',
+      [convId, 'assistant', fullContent],
+    )
+    await pool.query(
+      'UPDATE chat_conversation SET title = ? WHERE id = ? AND (title = ? OR title = ?)',
+      [message.slice(0, 50), convId, '新对话', ''],
+    )
+
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+    res.end()
+  } catch (e: any) {
+    console.error('Stream chat error:', e)
+    res.write(`data: ${JSON.stringify({ type: 'error', error: e.message || 'AI service error' })}\n\n`)
+    res.end()
   }
 })
 
