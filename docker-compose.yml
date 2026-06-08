@@ -12,7 +12,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./meow_ledger.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./meow_ledger_0605.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-meow123}"]
       interval: 5s
