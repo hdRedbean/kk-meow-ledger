@@ -179,7 +179,12 @@ export async function sendMessageStream(
   })
 
   if (!res.ok || !res.body) {
-    throw new Error(`Stream request failed: ${res.status}`)
+    const reader = res?.body?.getReader()
+    const decoder = new TextDecoder()
+    const { value } = await reader?.read()
+    const v = decoder.decode(value, { stream: true })
+    const vObj = JSON.parse(v)
+    throw new Error(`Stream request failed: ${res.status}, errMsg：${vObj.error}`)
   }
 
   let convId = conversationId

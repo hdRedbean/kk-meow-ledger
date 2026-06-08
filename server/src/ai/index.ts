@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { pool } from '../db.js'
 import { toolDefinitions } from './tools.js'
+import { aiLimiter } from './limiter.js'
 
 const client = new OpenAI({
   apiKey: process.env.AI_API_KEY || '',
@@ -208,12 +209,14 @@ export async function chat(userMessage: string, history: { role: string; content
   let assistantContent = ''
 
   for (let round = 0; round < 5; round++) {
-    const response = await client.chat.completions.create({
-      model: process.env.AI_MODEL || 'deepseek-chat',
-      messages,
-      tools: toolDefinitions,
-      tool_choice: 'auto',
-    })
+    const response = await aiLimiter.schedule(() =>
+      client.chat.completions.create({
+        model: process.env.AI_MODEL || 'deepseek-chat',
+        messages,
+        tools: toolDefinitions,
+        tool_choice: 'auto',
+      })
+    )
 
     const choice = response.choices[0]
     const msg = choice.message
@@ -250,13 +253,15 @@ export async function streamChat(
   const messages = buildMessages(userMessage, history)
 
   for (let round = 0; round < 5; round++) {
-    const stream = await client.chat.completions.create({
-      model: process.env.AI_MODEL || 'deepseek-chat',
-      messages,
-      tools: toolDefinitions,
-      tool_choice: 'auto',
-      stream: true,
-    })
+    const stream = await aiLimiter.schedule(() =>
+      client.chat.completions.create({
+        model: process.env.AI_MODEL || 'deepseek-chat',
+        messages,
+        tools: toolDefinitions,
+        tool_choice: 'auto',
+        stream: true,
+      })
+    )
 
     let toolCalls: { id: string; name: string; arguments: string }[] = []
     let hasToolCalls = false

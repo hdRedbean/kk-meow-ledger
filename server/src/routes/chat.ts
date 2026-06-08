@@ -1,8 +1,42 @@
-import { Router } from 'express'
+import { Router, type Request, type Response, type NextFunction } from 'express'
 import { pool } from '../db.js'
 import { chat, streamChat } from '../ai/index.js'
+import { chatRateLimitMeta } from '../ai/limiter.js'
 
 const router = Router()
+
+const ipMinuteMap = new Map<string, { count: number; resetAt: number }>()
+const ipDayMap = new Map<string, { count: number; resetAt: number }>()
+
+function ipRateLimit(req: Request, res: Response, next: NextFunction): void {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown'
+  const now = Date.now()
+
+  const minuteRecord = ipMinuteMap.get(ip)
+  if (!minuteRecord || now > minuteRecord.resetAt) {
+    ipMinuteMap.set(ip, { count: 1, resetAt: now + chatRateLimitMeta.windowMs })
+  } else if (minuteRecord.count >= chatRateLimitMeta.max) {
+    res.status(429).json({ error: '请求过于频繁，请稍后再试' })
+    return
+  } else {
+    minuteRecord.count++
+  }
+
+  const today = new Date()
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+  const endOfDay = startOfDay + 86_400_000
+  const dayRecord = ipDayMap.get(ip)
+  if (!dayRecord || now > dayRecord.resetAt) {
+    ipDayMap.set(ip, { count: 1, resetAt: endOfDay })
+  } else if (dayRecord.count >= chatRateLimitMeta.dailyMax) {
+    res.status(429).json({ error: '今日对话次数已达上限，明天再来吧 🐱' })
+    return
+  } else {
+    dayRecord.count++
+  }
+
+  next()
+}
 
 router.get('/conversations', async (_req, res) => {
   try {
@@ -56,7 +90,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', ipRateLimit, async (req, res) => {
   try {
     const { message, conversationId } = req.body
     if (!message) return res.status(400).json({ error: 'message is required' })
@@ -100,7 +134,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.post('/stream', async (req, res) => {
+router.post('/stream', ipRateLimit, async (req, res) => {
   const { message, conversationId } = req.body
   if (!message) {
     res.status(400).json({ error: 'message is required' })
