@@ -3,6 +3,14 @@ import { pool } from '../db.js'
 
 const router = Router()
 
+function formatDate(d: Date | string) {
+  if (!(d instanceof Date)) d = new Date(d);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function formatBill(r: any) {
   return {
     id: r.id,
@@ -10,7 +18,7 @@ function formatBill(r: any) {
     amount: Number(r.amount),
     categoryId: r.category_id,
     accountId: r.account_id,
-    date: r.date instanceof Date ? r.date.toISOString().slice(0, 10) : String(r.date),
+    date: formatDate(r.date),
     note: r.note || '',
     createdAt: new Date(r.created_at).getTime(),
   }
