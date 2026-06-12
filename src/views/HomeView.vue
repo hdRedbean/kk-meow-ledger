@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onActivated, onMounted } from 'vue'
 import { useBillStore } from '@/stores/bill'
 import { useBudgetStore } from '@/stores/budget'
 import { getCurrentMonth, formatMoney, formatDate } from '@/utils'
@@ -7,7 +7,11 @@ import type { BillDTO } from '@/api'
 import BudgetProgress from '@/components/BudgetProgress.vue'
 import BillItem from '@/components/BillItem.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { useCategoryStore } from "@/stores/category.ts";
+import { useAccountStore } from "@/stores/account.ts";
 
+const categoryStore = useCategoryStore()
+const accountStore = useAccountStore()
 const billStore = useBillStore()
 const budgetStore = useBudgetStore()
 const currentMonth = ref(getCurrentMonth())
@@ -36,6 +40,15 @@ async function loadMonthData() {
 
 watch(currentMonth, loadMonthData, { immediate: true })
 watch(() => billStore.version, loadMonthData)
+
+onMounted(async () => {
+  await Promise.all([
+    categoryStore.load(),
+    accountStore.load(),
+    budgetStore.load(),
+    billStore.load(),
+  ])
+})
 </script>
 
 <template>

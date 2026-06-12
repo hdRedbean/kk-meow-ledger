@@ -63,21 +63,16 @@ function onBillSaved() {
   billStore.version++
 }
 
-const tokens = ref(localStorage.getItem('token'))
+const tokens = ref<boolean>(localStorage.getItem('token') ? true : false)
 
 onMounted(async () => {
   if (authStore.isLoggedIn) {
     try {
       await authStore.fetchMe()
+      tokens.value = localStorage.getItem('token') ? true : false
     } catch {
       return
     }
-    await Promise.all([
-      categoryStore.load(),
-      accountStore.load(),
-      budgetStore.load(),
-      billStore.load(),
-    ])
   }
 })
 </script>

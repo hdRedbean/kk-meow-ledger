@@ -266,6 +266,7 @@ watch(currentMonth, loadMonthData, { immediate: true })
 }
 
 .summary-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
