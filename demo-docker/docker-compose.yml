@@ -1,0 +1,87 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: meow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-meow123}
+      MYSQL_DATABASE: meow_ledger
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./meow_ledger_0605.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-meow123}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: meow-server
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-meow123}
+      DB_NAME: meow_ledger
+      AI_API_KEY: ${AI_API_KEY}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com}
+      AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meow-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+  # ========================================
+  # Port-based deployment (alternative)
+  # Uncomment below and comment out the 'web' service above if you want
+  # front-web-1 on port 80 and front-web-2 on port 81 separately
+  # ========================================
+  # web1:
+  #   build:
+  #     context: ./front-web-1
+  #     dockerfile: Dockerfile
+  #   container_name: meow-web1
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - server
+  #
+  # web2:
+  #   build:
+  #     context: ./front-web-2
+  #     dockerfile: Dockerfile
+  #   container_name: meow-web2
+  #   restart: unless-stopped
+  #   ports:
+  #     - "81:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - server
+
+volumes:
+  mysql_data:
