@@ -43,6 +43,48 @@ async function handleLogout() {
     router.replace('/login')
   } catch { }
 }
+
+function triggerImport() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.json,.csv'
+  input.onchange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      const bills = file.name.endsWith('.csv') ? importFromCSV(text) : importFromJSON(text)
+      if (bills.length === 0) {
+        showToast('文件中没有有效数据')
+        return
+      }
+      await showConfirmDialog({
+        title: '确认导入',
+        message: `将导入 ${bills.length} 条记录，是否继续？`,
+      })
+      for (const bill of bills) {
+        await billStore.add(bill)
+      }
+      showToast(`成功导入 ${bills.length} 条记录 🐱`)
+    } catch (err: any) {
+      showToast(`导入失败: ${err.message}`)
+    }
+  }
+  input.click()
+}
+
+async function clearAllData() {
+  try {
+    await showConfirmDialog({
+      title: '危险操作',
+      message: '确认清除所有数据？此操作不可恢复！',
+    })
+    for (const bill of billStore.bills) {
+      if (bill.id) await billStore.remove(bill.id)
+    }
+    showToast('数据已清除')
+  } catch { }
+}
 </script>
 
 <template>
