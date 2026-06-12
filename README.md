@@ -6,6 +6,10 @@
 # 部署
 配置内容：数据库，大模型api，大模型调用限制
 
+meow-ledger 前端
+- cp .env.example .env （如果已存在直接配置）
+
+meow-ledger/server 后端
 - cd meow-ledger/server
 - cp .env.example .env （如果已存在直接配置）
 - docker compose up -d

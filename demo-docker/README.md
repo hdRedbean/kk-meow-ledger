@@ -3,6 +3,7 @@
 
 如果是要配置多个前端项目共用一个后端和mysql一起跑的话，可以参考这个目录 ，修改 front-web-xxx 即可
 
+- cp .env.example .env
 - docker compose up -d  (docker compose up -d --build 重新构建)
 - docker ps -a
 - docker compose logs -f
