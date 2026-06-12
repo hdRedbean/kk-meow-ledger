@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | any
   content: string
   loading?: boolean
 }>()

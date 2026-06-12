@@ -181,7 +181,7 @@ export async function sendMessageStream(
   if (!res.ok || !res.body) {
     const reader = res?.body?.getReader()
     const decoder = new TextDecoder()
-    const { value } = await reader?.read()
+    const { value } = await reader?.read() as any
     const v = decoder.decode(value, { stream: true })
     const vObj = JSON.parse(v)
     throw new Error(`Stream request failed: ${res.status}, errMsg：${vObj.error}`)

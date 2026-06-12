@@ -16,7 +16,7 @@ const searchKeyword = ref('')
 const filterCategoryId = ref<number | null>(null)
 
 const monthStats = ref({ income: 0, expense: 0, balance: 0 })
-const monthBills = ref<BillDTO[]>([])
+const monthBills = ref<BillDTO[]>([]) as any
 
 const allCategories = computed(() => [
   ...categoryStore.getByType('expense'),

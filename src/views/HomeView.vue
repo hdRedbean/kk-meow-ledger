@@ -13,7 +13,7 @@ const budgetStore = useBudgetStore()
 const currentMonth = ref(getCurrentMonth())
 
 const monthStats = ref({ income: 0, expense: 0, balance: 0 })
-const monthBills = ref<BillDTO[]>([])
+const monthBills = ref<BillDTO[]>([]) as any
 const totalBudget = ref(0)
 
 const dayGroups = computed(() => billStore.groupByDays(monthBills.value))

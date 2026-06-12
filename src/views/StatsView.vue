@@ -12,7 +12,7 @@ const categoryStore = useCategoryStore()
 const currentMonth = ref(getCurrentMonth())
 const monthStats = ref({ income: 0, expense: 0, balance: 0 })
 const categoryStats = ref<{ categoryId: number; amount: number; percentage: number }[]>([])
-const monthBills = ref([])
+const monthBills = ref([]) as any
 
 const expenseCategories = computed(() => categoryStore.getByType('expense'))
 const incomeCategories = computed(() => categoryStore.getByType('income'))
