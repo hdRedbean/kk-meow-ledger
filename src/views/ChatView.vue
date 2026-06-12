@@ -79,7 +79,8 @@ async function sendMessage() {
       text,
       activeConvId.value,
       (chunk) => {
-        messages.value[msgIndex].content += chunk
+        const msg = { ...messages.value[msgIndex], content: messages.value[msgIndex].content + chunk }
+        messages.value.splice(msgIndex, 1, msg)
         scrollToBottom()
       },
       (id) => {
@@ -89,7 +90,7 @@ async function sendMessage() {
     activeConvId.value = conversationId
     await loadConversations()
   } catch (e: any) {
-    messages.value[msgIndex].content = '抱歉，出了点问题，请稍后再试 😿\n' + (e.message || '')
+    messages.value.splice(msgIndex, 1, { ...messages.value[msgIndex], content: '抱歉，出了点问题，请稍后再试 😿\n' + (e.message || '') })
   } finally {
     isLoading.value = false
     await nextTick()

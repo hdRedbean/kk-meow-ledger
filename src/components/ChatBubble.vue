@@ -13,7 +13,7 @@ defineProps<{
       <span v-else class="avatar-icon">😊</span>
     </div>
     <div class="bubble-content">
-      <div v-if="loading" class="bubble-loading">
+      <div v-if="loading && content.length <= 0" class="bubble-loading">
         <div class="loading-cat">
           <span class="cat-face">😺</span>
         </div>
