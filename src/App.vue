@@ -95,7 +95,7 @@ onMounted(async () => {
 
     <AddBillPopup v-model:show="showAddBill" :edit-bill-id="editingBillId" @saved="onBillSaved" />
 
-    <van-tabbar v-if="isMobile" v-model="activeTab" @change="onTabChange" active-color="#FFB347" inactive-color="#8B7E6A">
+    <van-tabbar style="height: var(--cat-nav-bottom-padding);" v-if="isMobile" v-model="activeTab" @change="onTabChange" active-color="#FFB347" inactive-color="#8B7E6A">
       <van-tabbar-item v-for="tab in tabItems" :key="tab.key" :name="tab.key">
         <span>{{ tab.label }}</span>
         <template #icon><span class="tabbar-icon">{{ tab.icon }}</span></template>

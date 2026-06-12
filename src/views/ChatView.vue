@@ -31,7 +31,6 @@ async function selectConversation(id: number) {
 
 async function newConversation() {
   try {
-    // const res = await api.createConversation()
     activeConvId.value = null
     messages.value = []
     showSidebar.value = false
@@ -120,8 +119,14 @@ onMounted(loadConversations)
   <div class="chat-page">
     <div :class="['sidebar', { open: showSidebar }]">
       <div class="sidebar-header">
-        <h3 class="sidebar-title">🐱 对话列表</h3>
-        <button class="cat-btn cat-btn-sm" @click="newConversation">＋ 新对话</button>
+        <div class="header-left">
+          <span class="header-icon">🐱</span>
+          <h3 class="sidebar-title">对话列表</h3>
+        </div>
+        <button class="cat-btn cat-btn-sm" @click="newConversation">
+          <span class="btn-icon">✨</span>
+          新对话
+        </button>
       </div>
       <div class="conv-list">
         <div
@@ -130,18 +135,32 @@ onMounted(loadConversations)
           :class="['conv-item', { active: activeConvId === conv.id }]"
           @click="selectConversation(conv.id)"
         >
+          <span class="conv-icon">💬</span>
           <span class="conv-title">{{ conv.title }}</span>
-          <button class="conv-delete" @click.stop="deleteConversation(conv.id)">✕</button>
+          <button class="conv-delete" @click.stop="deleteConversation(conv.id)">
+            <span class="delete-icon">✕</span>
+          </button>
         </div>
-        <div v-if="conversations.length === 0" class="conv-empty">暂无对话</div>
+        <div v-if="conversations.length === 0" class="conv-empty">
+          <span class="empty-icon">😺</span>
+          <span class="empty-text">暂无对话</span>
+        </div>
       </div>
     </div>
 
     <div class="chat-main">
       <div class="chat-header">
-        <button v-if="isMobile" class="menu-btn" @click="showSidebar = !showSidebar">☰</button>
-        <h3 class="chat-title">🐱 AI 助手</h3>
-        <button class="cat-btn cat-btn-sm" @click="newConversation">新对话</button>
+        <button v-if="isMobile" class="menu-btn" @click="showSidebar = !showSidebar">
+          <span class="menu-icon">☰</span>
+        </button>
+        <div class="header-center">
+          <span class="header-icon">🐱</span>
+          <h3 class="chat-title">AI 助手</h3>
+        </div>
+        <button class="cat-btn cat-btn-sm" @click="newConversation">
+          <span class="btn-icon">✨</span>
+          新对话
+        </button>
       </div>
 
       <div ref="chatListRef" class="chat-list">
@@ -149,158 +168,223 @@ onMounted(loadConversations)
           <ChatBubble
             v-for="msg in messages.slice(0, -1)"
             :key="msg.id"
-            :role="msg.role as 'user' | 'assistant'"
+            :role="msg.role"
             :content="msg.content"
           />
           <ChatBubble
             v-if="messages.length > 0"
-            :role="messages[messages.length - 1].role as 'user' | 'assistant'"
+            :role="messages[messages.length - 1].role"
             :content="messages[messages.length - 1].content"
-            :loading="isLoading && !messages[messages.length - 1].content"
+            :loading="isLoading"
           />
         </template>
-        <div v-else class="chat-welcome">
-          <span class="welcome-icon">🐱</span>
-          <h4 class="welcome-title">喵喵助手来帮你记账！</h4>
-          <p class="welcome-desc">试试问我：</p>
-          <div class="welcome-suggestions">
-            <button class="suggestion" @click="inputText = '这个月花了多少钱？'; sendMessage()">这个月花了多少钱？</button>
-            <button class="suggestion" @click="inputText = '本月餐饮支出多少？'; sendMessage()">本月餐饮支出多少？</button>
-            <button class="suggestion" @click="inputText = '帮我记一笔餐饮支出50元'; sendMessage()">帮我记一笔餐饮支出50元</button>
-            <button class="suggestion" @click="inputText = '预算还剩多少？'; sendMessage()">预算还剩多少？</button>
+        <div v-else class="empty-chat">
+          <div class="empty-icon-wrapper">
+            <span class="empty-icon">😺</span>
+            <div class="pawprints">
+              <span class="paw">🐾</span>
+              <span class="paw">🐾</span>
+            </div>
           </div>
+          <p class="empty-text">开始和喵喵助手聊天吧~</p>
         </div>
       </div>
 
       <div class="chat-input-area">
-        <input
-          v-model="inputText"
-          class="chat-input"
-          placeholder="问我任何记账问题..."
-          :disabled="isLoading"
-          @keydown="handleKeydown"
-        />
-        <button :class="['send-btn', { disabled: isLoading || !inputText.trim() }]" @click="sendMessage">
-          📤
-        </button>
+        <div class="input-wrapper">
+          <textarea
+            v-model="inputText"
+            class="chat-input"
+            placeholder="输入消息..."
+            rows="1"
+            @keydown="handleKeydown"
+          />
+          <button class="send-btn" :disabled="!inputText.trim() || isLoading" @click="sendMessage">
+            <span class="send-icon">🚀</span>
+          </button>
+        </div>
       </div>
     </div>
-
-    <div v-if="showSidebar && isMobile" class="sidebar-overlay" @click="showSidebar = false"></div>
   </div>
 </template>
 
 <style scoped>
 .chat-page {
   display: flex;
-  height: calc(100vh - 50px);
-  max-width: 1200px;
-  margin: 0 auto;
+  height: 100vh;
+  background: #FFF9F5;
+  overflow: hidden;
 }
 
 .sidebar {
-  width: 240px;
-  border-right: 1px solid var(--cat-border);
-  background: var(--cat-card);
+  width: 280px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F3 100%);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 4px 0 20px rgba(255, 139, 94, 0.08);
 }
 
 @media (max-width: 767px) {
   .sidebar {
-    position: fixed;
-    left: -260px;
-    top: 0;
-    bottom: 0;
-    z-index: 200;
-    width: 260px;
-    transition: left 0.25s;
-  }
-  .sidebar.open {
+    position: absolute;
     left: 0;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+    top: 0;
+    z-index: 100;
+    transform: translateX(-100%);
+    height: 100%;
   }
-  .sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 199;
+  
+  .sidebar.open {
+    transform: translateX(0);
   }
 }
 
 .sidebar-header {
+  padding: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid var(--cat-border);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 6px rgba(255, 139, 94, 0.2));
 }
 
 .sidebar-title {
-  font-size: 15px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3D3D3D;
+}
+
+.cat-btn {
+  background: linear-gradient(135deg, #FF8B5E 0%, #FF9A6F 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 8px 14px;
   font-weight: 600;
-  color: var(--cat-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(255, 139, 94, 0.2);
+}
+
+.cat-btn:hover {
+  transform: scale(1.02);
+}
+
+.cat-btn-sm {
+  padding: 8px 12px;
+}
+
+.btn-icon {
+  font-size: 12px;
+  filter: brightness(10);
 }
 
 .conv-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 12px;
 }
 
 .conv-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 10px;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-bottom: 8px;
+  background: transparent;
 }
 
 .conv-item:hover {
-  background: var(--cat-secondary);
+  background: rgba(255, 139, 94, 0.08);
+  transform: translateX(4px);
 }
 
 .conv-item.active {
-  background: var(--cat-accent-light);
+  background: rgba(255, 139, 94, 0.12);
+  box-shadow: 0 2px 12px rgba(255, 139, 94, 0.1);
+}
+
+.conv-icon {
+  font-size: 18px;
 }
 
 .conv-title {
-  font-size: 13px;
-  color: var(--cat-text);
+  flex: 1;
+  font-size: 14px;
+  color: #3D3D3D;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
 }
 
 .conv-delete {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: none;
-  background: transparent;
-  color: var(--cat-text-light);
-  font-size: 10px;
+  background: rgba(242, 139, 130, 0.1);
+  color: #F28B82;
+  font-size: 12px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.25s ease;
+  opacity: 0;
 }
 
 .conv-item:hover .conv-delete {
   opacity: 1;
 }
 
+.conv-delete:hover {
+  background: #F28B82;
+  color: white;
+  transform: scale(1.1);
+}
+
+.delete-icon {
+  font-weight: 600;
+}
+
 .conv-empty {
-  text-align: center;
-  padding: 24px;
-  font-size: 13px;
-  color: var(--cat-text-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+}
+
+.empty-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 8px rgba(255, 139, 94, 0.15));
+}
+
+.empty-text {
+  font-size: 14px;
+  color: #8C8C8C;
+  font-weight: 500;
 }
 
 .chat-main {
@@ -311,136 +395,159 @@ onMounted(loadConversations)
 }
 
 .chat-header {
+  padding: 12px 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--cat-border);
-  background: var(--cat-card);
+  justify-content: space-between;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F3 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(255, 139, 94, 0.08);
 }
 
 .menu-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   border: none;
-  background: var(--cat-secondary);
-  font-size: 16px;
+  background: linear-gradient(135deg, #FFF8F3 0%, #F5EBE0 100%);
+  color: #8C8C8C;
+  font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(255, 139, 94, 0.08);
+}
+
+.menu-btn:hover {
+  transform: scale(1.05);
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chat-title {
-  flex: 1;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cat-text);
+  font-size: 18px;
+  font-weight: 700;
+  color: #3D3D3D;
 }
 
 .chat-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
 }
 
-.chat-welcome {
+.empty-chat {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.welcome-icon {
-  font-size: 48px;
-}
-
-.welcome-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--cat-text);
-}
-
-.welcome-desc {
-  font-size: 13px;
-  color: var(--cat-text-light);
-}
-
-.welcome-suggestions {
+.empty-icon-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FFF8F3 0%, #FFEDE3 100%);
+  border-radius: 50%;
+  animation: float 3s ease-in-out infinite;
 }
 
-.suggestion {
-  padding: 10px 18px;
-  border-radius: 16px;
-  border: 1.5px solid var(--cat-border);
-  background: var(--cat-card);
-  font-size: 13px;
-  color: var(--cat-text);
-  cursor: pointer;
-  transition: all 0.15s;
-  text-align: left;
+.empty-icon-wrapper .empty-icon {
+  font-size: 42px;
 }
 
-.suggestion:hover {
-  border-color: var(--cat-accent);
-  background: var(--cat-accent-light);
+.pawprints {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.paw {
+  font-size: 12px;
+  opacity: 0.4;
 }
 
 .chat-input-area {
+  padding: 12px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F3 100%);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -4px 20px rgba(255, 139, 94, 0.08);
+  padding-bottom: calc(var(--cat-nav-bottom-padding) + 10px);
+}
+
+.input-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--cat-border);
-  background: var(--cat-card);
+  gap: 12px;
+  background: linear-gradient(135deg, #F5EBE0 0%, #EDE5DB 100%);
+  border-radius: 18px;
+  padding: 6px;
 }
 
 .chat-input {
   flex: 1;
-  border: 1.5px solid var(--cat-border);
-  border-radius: 20px;
-  padding: 10px 16px;
-  font-size: 14px;
-  background: var(--cat-bg);
-  color: var(--cat-text);
+  border: none;
   outline: none;
-  transition: border-color 0.2s;
+  font-size: 15px;
+  background: transparent;
+  padding: 8px 10px;
+  color: #3D3D3D;
+  resize: none;
+  line-height: 1.5;
 }
 
-.chat-input:focus {
-  border-color: var(--cat-accent);
+.chat-input::placeholder {
+  color: #8C8C8C;
 }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: none;
-  background: var(--cat-accent);
-  font-size: 18px;
+  background: linear-gradient(135deg, #FF8B5E 0%, #FF9A6F 100%);
+  color: white;
+  font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
-  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(255, 139, 94, 0.2);
 }
 
-.send-btn:active {
-  transform: scale(0.9);
+.send-btn:hover:not(:disabled) {
+  transform: scale(1.08);
 }
 
-.send-btn.disabled {
-  opacity: 0.4;
+.send-btn:disabled {
+  background: #D4C4B5;
+  box-shadow: none;
   cursor: not-allowed;
+}
+
+.send-icon {
+  filter: brightness(10);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 </style>

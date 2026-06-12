@@ -36,11 +36,16 @@ function onConfirm({ selectedValues }: { selectedValues: string[] }) {
 
 <template>
   <div class="month-picker">
-    <button class="arrow-btn" @click="prev">◀</button>
-    <button class="month-label" @click="showPicker = true">
-      {{ modelValue.replace('-', '年') }}月
+    <button class="arrow-btn prev" @click="prev">
+      <span class="arrow-icon">←</span>
     </button>
-    <button class="arrow-btn" @click="next">▶</button>
+    <button class="month-label" @click="showPicker = true">
+      <span class="month-text">{{ modelValue.replace('-', '年') }}月</span>
+      <span class="month-icon">📅</span>
+    </button>
+    <button class="arrow-btn next" @click="next">
+      <span class="arrow-icon">→</span>
+    </button>
     <van-popup v-model:show="showPicker" position="bottom" round>
       <van-date-picker
         :model-value="pickerDate"
@@ -58,40 +63,66 @@ function onConfirm({ selectedValues }: { selectedValues: string[] }) {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 8px 0;
 }
 
 .arrow-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: none;
-  background: var(--cat-secondary);
-  color: var(--cat-text-light);
-  font-size: 12px;
+  background: linear-gradient(135deg, #FFF8F3 0%, #F5EBE0 100%);
+  color: var(--cat-text-light, #8C8C8C);
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(255, 139, 94, 0.08);
 }
 
 .arrow-btn:hover {
-  background: var(--cat-accent-light);
+  transform: scale(1.08);
+  background: linear-gradient(135deg, #FFEDE3 0%, #F5EBE0 100%);
+  box-shadow: 0 4px 12px rgba(255, 139, 94, 0.15);
+}
+
+.arrow-btn:active {
+  transform: scale(0.95);
+}
+
+.arrow-icon {
+  font-weight: 600;
 }
 
 .month-label {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cat-text);
-  background: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--cat-text, #3D3D3D);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F3 100%);
   border: none;
   cursor: pointer;
-  padding: 4px 12px;
-  border-radius: 12px;
-  transition: background 0.15s;
+  padding: 8px 18px;
+  border-radius: 14px;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 3px 12px rgba(255, 139, 94, 0.1);
 }
 
 .month-label:hover {
-  background: var(--cat-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 139, 94, 0.15);
+}
+
+.month-text {
+  letter-spacing: 0.02em;
+}
+
+.month-icon {
+  font-size: 14px;
+  opacity: 0.7;
 }
 </style>

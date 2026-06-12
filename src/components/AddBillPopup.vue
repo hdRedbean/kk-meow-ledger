@@ -50,7 +50,7 @@ const accounts = computed(() => accountStore.accounts)
 const popupStyle = computed(() => ({
   height: isMobile.value ? '85vh' : 'auto',
   maxHeight: '85vh',
-  borderRadius: isMobile.value ? '20px 20px 0 0' : '20px',
+  borderRadius: isMobile.value ? '24px 24px 0 0' : '24px',
 }))
 
 watch(
@@ -132,53 +132,76 @@ function onClose() {
   >
     <div class="add-bill-popup">
       <div class="popup-header">
-        <button class="close-btn" @click="onClose">✕</button>
-        <h3 class="popup-title">{{ editBillId ? '编辑账单' : '记一笔' }} 🐱</h3>
-        <div style="width: 32px"></div>
+        <button class="close-btn" @click="onClose">
+          <span class="close-icon">✕</span>
+        </button>
+        <h3 class="popup-title">
+          <span class="title-icon">🐱</span>
+          {{ editBillId ? '编辑账单' : '记一笔' }}
+        </h3>
+        <div style="width: 36px"></div>
       </div>
 
       <div class="type-switch">
         <button
-          :class="['type-btn', { active: billType === 'expense' }]"
+          :class="['type-btn', 'expense-btn', { active: billType === 'expense' }]"
           @click="billType = 'expense'"
         >
-          支出
+          <span class="btn-icon">💸</span>
+          <span class="btn-text">支出</span>
         </button>
         <button
-          :class="['type-btn', { active: billType === 'income' }]"
+          :class="['type-btn', 'income-btn', { active: billType === 'income' }]"
           @click="billType = 'income'"
         >
-          收入
+          <span class="btn-icon">💰</span>
+          <span class="btn-text">收入</span>
         </button>
       </div>
 
       <div class="amount-section">
-        <span class="currency">¥</span>
-        <input
-          v-model="amount"
-          type="number"
-          class="amount-input"
-          placeholder="0.00"
-          step="0.01"
-          min="0"
-        />
+        <div class="amount-container">
+          <span class="currency">¥</span>
+          <input
+            v-model="amount"
+            type="number"
+            class="amount-input"
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+          />
+          <div class="amount-decoration">
+            <span class="paw">🐾</span>
+          </div>
+        </div>
       </div>
 
-      <div class="category-grid">
-        <div
-          v-for="cat in currentCategories"
-          :key="cat.id"
-          :class="['category-item', { active: categoryId === cat.id }]"
-          @click="selectCategory(cat.id!)"
-        >
-          <span class="cat-icon">{{ cat.icon }}</span>
-          <span class="cat-name">{{ cat.name }}</span>
+      <div class="category-section">
+        <div class="section-label">
+          <span class="label-icon">🏷️</span>
+          <span class="label-text">选择分类</span>
+        </div>
+        <div class="category-grid">
+          <div
+            v-for="cat in currentCategories"
+            :key="cat.id"
+            :class="['category-item', { active: categoryId === cat.id }]"
+            @click="selectCategory(cat.id!)"
+          >
+            <div class="cat-icon-wrapper">
+              <span class="cat-icon">{{ cat.icon }}</span>
+            </div>
+            <span class="cat-name">{{ cat.name }}</span>
+          </div>
         </div>
       </div>
 
       <div class="form-section">
         <div class="form-row">
-          <label>账户</label>
+          <label class="form-label">
+            <span class="label-icon">💳</span>
+            <span class="label-text">账户</span>
+          </label>
           <div class="account-chips">
             <button
               v-for="acc in accounts"
@@ -186,14 +209,20 @@ function onClose() {
               :class="['account-chip', { active: accountId === acc.id }]"
               @click="selectAccount(acc.id!)"
             >
-              {{ acc.icon }} {{ acc.name }}
+              <span class="chip-icon">{{ acc.icon }}</span>
+              <span class="chip-name">{{ acc.name }}</span>
             </button>
           </div>
         </div>
 
         <div class="form-row">
-          <label>日期</label>
-          <span class="cat-input form-input date-trigger" @click="showDatePicker = true">{{ date }}</span>
+          <label class="form-label">
+            <span class="label-icon">📅</span>
+            <span class="label-text">日期</span>
+          </label>
+          <span class="cat-input form-input date-trigger" @click="showDatePicker = true">
+            <span class="date-text">{{ date }}</span>
+          </span>
         </div>
         <van-popup v-model:show="showDatePicker" position="bottom" round>
           <van-date-picker
@@ -206,7 +235,10 @@ function onClose() {
         </van-popup>
 
         <div class="form-row">
-          <label>备注</label>
+          <label class="form-label">
+            <span class="label-icon">📝</span>
+            <span class="label-text">备注</span>
+          </label>
           <input
             v-model="note"
             type="text"
@@ -218,7 +250,8 @@ function onClose() {
       </div>
 
       <button class="cat-btn save-btn" @click="save">
-        {{ editBillId ? '保存修改' : '保存' }}
+        <span class="btn-icon">✨</span>
+        <span class="btn-text">{{ editBillId ? '保存修改' : '保存' }}</span>
       </button>
     </div>
   </van-popup>
@@ -226,20 +259,20 @@ function onClose() {
 
 <style scoped>
 .add-bill-popup {
-  padding: 20px;
-  background: var(--cat-card);
+  padding: 24px;
+  background: linear-gradient(180deg, #FFF9F5 0%, #FFFFFF 100%);
   height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 @media (min-width: 768px) {
   .add-bill-popup {
     height: auto;
     max-height: 85vh;
-    min-width: 420px;
+    min-width: 440px;
   }
 }
 
@@ -247,86 +280,167 @@ function onClose() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 8px;
 }
 
 .close-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: none;
-  background: var(--cat-secondary);
-  color: var(--cat-text-light);
+  background: linear-gradient(135deg, #FFF8F3 0%, #F5EBE0 100%);
+  color: var(--cat-text-light, #8C8C8C);
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(255, 139, 94, 0.08);
+}
+
+.close-btn:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #FFEDE3 0%, #F5EBE0 100%);
+}
+
+.close-icon {
+  font-weight: 600;
 }
 
 .popup-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--cat-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cat-text, #3D3D3D);
+}
+
+.title-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(255, 139, 94, 0.2));
 }
 
 .type-switch {
   display: flex;
-  background: var(--cat-secondary);
-  border-radius: 24px;
-  padding: 3px;
+  background: linear-gradient(135deg, #F5EBE0 0%, #EDE5DB 100%);
+  border-radius: 20px;
+  padding: 6px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .type-btn {
   flex: 1;
-  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
   border: none;
-  border-radius: 22px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   background: transparent;
-  color: var(--cat-text-light);
-  transition: all 0.2s;
+  color: var(--cat-text-light, #8C8C8C);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .type-btn.active {
-  background: white;
-  color: var(--cat-text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F3 100%);
+  color: var(--cat-text, #3D3D3D);
+  box-shadow: 0 4px 16px rgba(255, 139, 94, 0.12);
+  transform: scale(1.02);
+}
+
+.expense-btn.active {
+  background: linear-gradient(135deg, #FFFFFF 0%, rgba(242, 139, 130, 0.08) 100%);
+}
+
+.income-btn.active {
+  background: linear-gradient(135deg, #FFFFFF 0%, rgba(125, 211, 192, 0.08) 100%);
+}
+
+.btn-icon {
+  font-size: 16px;
 }
 
 .amount-section {
+  margin-top: 4px;
+}
+
+.amount-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0;
+  gap: 10px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F3 100%);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(255, 139, 94, 0.08);
+  position: relative;
 }
 
 .currency {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  color: var(--cat-accent);
+  color: #FF8B5E;
 }
 
 .amount-input {
   flex: 1;
   border: none;
   outline: none;
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 700;
   background: transparent;
-  color: var(--cat-text);
+  color: var(--cat-text, #3D3D3D);
   min-width: 0;
+  letter-spacing: -0.02em;
 }
 
 .amount-input::placeholder {
-  color: var(--cat-border);
+  color: #D4C4B5;
+  opacity: 0.6;
+}
+
+.amount-decoration {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+}
+
+.paw {
+  font-size: 12px;
+  opacity: 0.25;
+}
+
+.category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label-icon {
+  font-size: 14px;
+}
+
+.label-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cat-text-light, #8C8C8C);
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 @media (min-width: 768px) {
@@ -339,41 +453,68 @@ function onClose() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 4px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 10px 6px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: transparent;
 }
 
 .category-item:hover {
-  background: var(--cat-secondary);
+  background: linear-gradient(135deg, #FFF8F3 0%, #F5EBE0 100%);
+  transform: translateY(-2px);
 }
 
 .category-item.active {
-  background: var(--cat-accent-light);
+  background: linear-gradient(135deg, rgba(255, 139, 94, 0.12) 0%, #FFEDE3 100%);
+  transform: translateY(-2px);
+}
+
+.cat-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F3 100%);
+  border-radius: 12px;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(255, 139, 94, 0.06);
+}
+
+.category-item.active .cat-icon-wrapper {
+  background: linear-gradient(135deg, #FF8B5E 0%, #FF9A6F 100%);
+  box-shadow: 0 4px 12px rgba(255, 139, 94, 0.25);
+  transform: scale(1.08);
 }
 
 .cat-icon {
-  font-size: 24px;
+  font-size: 22px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  transition: filter 0.25s ease;
+}
+
+.category-item.active .cat-icon {
+  filter: brightness(10) drop-shadow(0 2px 4px rgba(255, 139, 94, 0.3));
 }
 
 .cat-name {
   font-size: 11px;
-  color: var(--cat-text-light);
+  color: var(--cat-text-light, #8C8C8C);
   white-space: nowrap;
+  transition: color 0.25s ease;
 }
 
 .category-item.active .cat-name {
-  color: var(--cat-text);
-  font-weight: 500;
+  color: var(--cat-text, #3D3D3D);
+  font-weight: 600;
 }
 
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .form-row {
@@ -382,22 +523,53 @@ function onClose() {
   gap: 12px;
 }
 
-.form-row label {
-  font-size: 14px;
-  color: var(--cat-text-light);
-  min-width: 48px;
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 56px;
   flex-shrink: 0;
+}
+
+.form-row .label-icon {
+  font-size: 14px;
+}
+
+.form-row .label-text {
+  font-size: 14px;
+  color: var(--cat-text-light, #8C8C8C);
+  font-weight: 500;
+}
+
+.cat-input {
+  background: linear-gradient(135deg, #F5EBE0 0%, #EDE5DB 100%);
+  border-radius: 14px;
+  border: 1.5px solid transparent;
+  transition: all 0.25s ease;
+}
+
+.cat-input:focus {
+  border-color: #FF8B5E;
+  box-shadow: 0 0 0 3px rgba(255, 139, 94, 0.12);
 }
 
 .form-input {
   flex: 1;
   min-width: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--cat-text, #3D3D3D);
 }
 
 .date-trigger {
   cursor: pointer;
-  color: var(--cat-text);
-  padding: 8px 12px;
+  color: var(--cat-text, #3D3D3D);
+  display: flex;
+  align-items: center;
+}
+
+.date-text {
+  font-weight: 500;
 }
 
 .account-chips {
@@ -408,27 +580,52 @@ function onClose() {
 }
 
 .account-chip {
-  padding: 6px 12px;
-  border-radius: 16px;
-  border: 1.5px solid var(--cat-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(0, 0, 0, 0.06);
   background: transparent;
   font-size: 13px;
-  color: var(--cat-text-light);
+  color: var(--cat-text-light, #8C8C8C);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   white-space: nowrap;
 }
 
+.account-chip:hover {
+  border-color: rgba(255, 139, 94, 0.2);
+  background: rgba(255, 139, 94, 0.06);
+}
+
 .account-chip.active {
-  border-color: var(--cat-accent);
-  background: var(--cat-accent-light);
-  color: var(--cat-text);
+  border-color: #FF8B5E;
+  background: rgba(255, 139, 94, 0.12);
+  color: var(--cat-text, #3D3D3D);
+  font-weight: 600;
+  transform: scale(1.02);
+}
+
+.chip-icon {
+  font-size: 14px;
 }
 
 .save-btn {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 8px;
+  border-radius: 18px;
+  font-weight: 700;
+}
+
+.save-btn .btn-icon {
+  font-size: 16px;
+  filter: brightness(10);
 }
 </style>
