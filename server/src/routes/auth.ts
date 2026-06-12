@@ -2,6 +2,7 @@ import { Router, type Response } from 'express'
 import { pool } from '../db.js'
 import bcrypt from 'bcryptjs'
 import { generateToken, authMiddleware, type AuthRequest } from '../auth.js'
+import { logger } from '../logger.js'
 
 const router = Router()
 const SALT_ROUNDS = 12
@@ -24,6 +25,7 @@ router.post('/register', async (req, res: Response) => {
 
     const [existing] = await pool.query('SELECT id FROM user WHERE username = ?', [username])
     if ((existing as any[]).length > 0) {
+      logger.warn(`注册失败-用户名已存在: ${username}`)
       res.status(409).json({ error: '用户名已存在' })
       return
     }
@@ -40,12 +42,13 @@ router.post('/register', async (req, res: Response) => {
     await initUserPresetData(userId)
 
     const token = generateToken({ userId, username })
+    logger.info(`用户注册成功: ${username} (id=${userId})`)
     res.status(201).json({
       token,
       user: { id: userId, username, nickname: displayName, avatar: '' },
     })
   } catch (e: any) {
-    console.error('Register error:', e)
+    logger.error(`注册异常: ${e.message}`)
     res.status(500).json({ error: '注册失败，请稍后重试' })
   }
 })
@@ -64,6 +67,7 @@ router.post('/login', async (req, res: Response) => {
     )
     const users = rows as any[]
     if (users.length === 0) {
+      logger.warn(`登录失败-用户不存在: ${username}`)
       res.status(401).json({ error: '用户名或密码错误' })
       return
     }
@@ -71,11 +75,13 @@ router.post('/login', async (req, res: Response) => {
     const user = users[0]
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) {
+      logger.warn(`登录失败-密码错误: ${username}`)
       res.status(401).json({ error: '用户名或密码错误' })
       return
     }
 
     const token = generateToken({ userId: user.id, username: user.username })
+    logger.info(`用户登录成功: ${username} (id=${user.id})`)
     res.json({
       token,
       user: {
@@ -86,16 +92,17 @@ router.post('/login', async (req, res: Response) => {
       },
     })
   } catch (e: any) {
-    console.error('Login error:', e)
+    logger.error(`登录异常: ${e.message}`)
     res.status(500).json({ error: '登录失败，请稍后重试' })
   }
 })
 
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId
     const [rows] = await pool.query(
       'SELECT id, username, nickname, avatar, created_at FROM user WHERE id = ?',
-      [req.userId]
+      [userId]
     )
     const users = rows as any[]
     if (users.length === 0) {
@@ -110,12 +117,14 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
       avatar: user.avatar || '',
     })
   } catch (e: any) {
+    logger.error(`获取用户信息异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
 
 router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId
     const { nickname, avatar } = req.body
     const fields: string[] = []
     const values: any[] = []
@@ -125,10 +134,12 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response) =
       res.json({ updated: 0 })
       return
     }
-    values.push(req.userId)
+    values.push(userId)
     await pool.query(`UPDATE user SET ${fields.join(', ')} WHERE id = ?`, values)
+    logger.info(`用户更新资料: userId=${userId}`)
     res.json({ updated: 1 })
   } catch (e: any) {
+    logger.error(`更新用户资料异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })

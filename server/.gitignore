@@ -4,3 +4,5 @@ node_modules/
 *.log
 # 忽略 dist 目录
 dist/
+# 忽略日志目录
+logs/

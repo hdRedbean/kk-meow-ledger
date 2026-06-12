@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
 import { type AuthRequest } from '../auth.js'
+import { logger } from '../logger.js'
 
 const router = Router()
 
@@ -23,6 +24,7 @@ router.get('/', async (req: AuthRequest, res) => {
     }))
     res.json(accounts)
   } catch (e: any) {
+    logger.error(`账户操作异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -37,6 +39,7 @@ router.post('/', async (req: AuthRequest, res) => {
     )
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
+    logger.error(`账户操作异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -55,6 +58,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
     await pool.query(`UPDATE account SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`, values)
     res.json({ updated: 1 })
   } catch (e: any) {
+    logger.error(`账户操作异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -65,6 +69,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     await pool.query('DELETE FROM account WHERE id = ? AND user_id = ?', [req.params.id, userId])
     res.json({ deleted: 1 })
   } catch (e: any) {
+    logger.error(`账户操作异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })

@@ -3,6 +3,7 @@ import { pool } from '../db.js'
 import { chat, streamChat } from '../ai/index.js'
 import { chatRateLimitMeta } from '../ai/limiter.js'
 import { type AuthRequest } from '../auth.js'
+import { logger } from '../logger.js'
 
 const router = Router()
 
@@ -50,6 +51,7 @@ router.get('/conversations', async (req: AuthRequest, res) => {
     )
     res.json(rows)
   } catch (e: any) {
+    logger.error(`对话列表异常: userId=${(req as AuthRequest).userId} ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -64,6 +66,7 @@ router.post('/conversations', async (req: AuthRequest, res) => {
     )
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
+    logger.error(`创建对话异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -74,6 +77,7 @@ router.delete('/conversations/:id', async (req: AuthRequest, res) => {
     await pool.query('DELETE FROM chat_conversation WHERE id = ? AND user_id = ?', [req.params.id, userId])
     res.json({ deleted: 1 })
   } catch (e: any) {
+    logger.error(`删除对话异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -97,6 +101,7 @@ router.get('/conversations/:id/messages', async (req: AuthRequest, res) => {
       createdAt: new Date(r.created_at).getTime(),
     })))
   } catch (e: any) {
+    logger.error(`获取消息异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -141,7 +146,7 @@ router.post('/', ipRateLimit, async (req: AuthRequest, res) => {
       assistantMessage: { role: 'assistant', content: assistantContent, createdAt: Date.now() },
     })
   } catch (e: any) {
-    console.error('Chat error:', e)
+    logger.error(`对话异常: userId=${req.userId} ${e.message}`)
     res.status(500).json({ error: e.message || 'AI service error' })
   }
 })
@@ -195,7 +200,7 @@ router.post('/stream', ipRateLimit, async (req: AuthRequest, res) => {
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
     res.end()
   } catch (e: any) {
-    console.error('Stream chat error:', e)
+    logger.error(`流式对话异常: userId=${req.userId} ${e.message}`)
     res.write(`data: ${JSON.stringify({ type: 'error', error: e.message || 'AI service error' })}\n\n`)
     res.end()
   }

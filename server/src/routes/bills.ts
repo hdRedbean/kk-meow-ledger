@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
 import { type AuthRequest } from '../auth.js'
+import { logger } from '../logger.js'
 
 const router = Router()
 
@@ -44,6 +45,7 @@ router.get('/', async (req: AuthRequest, res) => {
     const [rows] = await pool.query(sql, params)
     res.json((rows as any[]).map(formatBill))
   } catch (e: any) {
+    logger.error(`查询账单异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -56,8 +58,10 @@ router.post('/', async (req: AuthRequest, res) => {
       'INSERT INTO bill (type, amount, category_id, account_id, date, note, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [type, amount, categoryId, accountId, date, note || '', userId]
     )
+    logger.info(`账单创建: userId=${userId} type=${type} amount=${amount}`)
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
+    logger.error(`创建账单异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -81,6 +85,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
     await pool.query(`UPDATE bill SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`, values)
     res.json({ updated: 1 })
   } catch (e: any) {
+    logger.error(`更新账单异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -88,9 +93,11 @@ router.put('/:id', async (req: AuthRequest, res) => {
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!
+    logger.info(`账单删除: userId=${userId} id=${req.params.id}`)
     await pool.query('DELETE FROM bill WHERE id = ? AND user_id = ?', [req.params.id, userId])
     res.json({ deleted: 1 })
   } catch (e: any) {
+    logger.error(`删除账单异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -115,6 +122,7 @@ router.get('/stats/monthly', async (req: AuthRequest, res) => {
     }
     res.json({ income, expense, balance: income - expense })
   } catch (e: any) {
+    logger.error(`月度统计异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -145,6 +153,7 @@ router.get('/stats/category', async (req: AuthRequest, res) => {
     }))
     res.json(result)
   } catch (e: any) {
+    logger.error(`分类统计异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -177,6 +186,7 @@ router.get('/stats/daily', async (req: AuthRequest, res) => {
     }
     res.json(Array.from(dailyMap.values()))
   } catch (e: any) {
+    logger.error(`每日统计异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
@@ -204,6 +214,7 @@ router.get('/stats/yearly', async (req: AuthRequest, res) => {
     }
     res.json(Array.from(monthMap.values()))
   } catch (e: any) {
+    logger.error(`年度统计异常: ${e.message}`)
     res.status(500).json({ error: e.message })
   }
 })
