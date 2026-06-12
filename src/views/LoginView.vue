@@ -165,19 +165,17 @@ function toggleMode() {
       </div>
     </div>
 
-    <div class="auth-bottom-text">
-      <span class="cat-emoji">🐱</span> 喵喵记账 · 安全加密存储
-    </div>
+    <!--<div class="auth-bottom-text">-->
+    <!--  <span class="cat-emoji">🐱</span> 喵喵记账 · 安全加密存储-->
+    <!--</div>-->
   </div>
 </template>
 
 <style scoped>
 .auth-page {
-  min-height: 100vh;
+  min-height: calc(var(--cat-nav-bottom-padding) - 100vh);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   background: #FFF8E7;
   padding: 24px 20px;
   position: relative;
