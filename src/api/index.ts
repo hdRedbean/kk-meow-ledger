@@ -5,6 +5,26 @@ const http = axios.create({
   timeout: 30000,
 })
 
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      window.location.hash = '#/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 // ---- Categories ----
 
 export interface CategoryDTO {
@@ -172,9 +192,10 @@ export async function sendMessageStream(
   onChunk: (text: string) => void,
   onConversationId: (id: number) => void,
 ): Promise<{ conversationId: number; fullContent: string }> {
+  const token = localStorage.getItem('token')
   const res = await fetch('/api/chat/stream', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
     body: JSON.stringify({ message, conversationId }),
   })
 
@@ -222,3 +243,40 @@ export async function sendMessageStream(
 
   return { conversationId: convId!, fullContent }
 }
+
+// ---- Auth ----
+
+export interface LoginDTO {
+  username: string
+  password: string
+}
+
+export interface RegisterDTO {
+  username: string
+  password: string
+  nickname?: string
+}
+
+export interface AuthResultDTO {
+  token: string
+  user: UserInfoDTO
+}
+
+export interface UserInfoDTO {
+  id: number
+  username: string
+  nickname: string
+  avatar: string
+}
+
+export const login = (data: LoginDTO) =>
+  http.post<AuthResultDTO>('/auth/login', data).then((r) => r.data)
+
+export const register = (data: RegisterDTO) =>
+  http.post<AuthResultDTO>('/auth/register', data).then((r) => r.data)
+
+export const getMe = () =>
+  http.get<UserInfoDTO>('/auth/me').then((r) => r.data)
+
+export const updateProfile = (data: { nickname?: string; avatar?: string }) =>
+  http.put('/auth/profile', data).then((r) => r.data)

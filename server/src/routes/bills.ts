@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
+import { type AuthRequest } from '../auth.js'
 
 const router = Router()
 
@@ -24,11 +25,12 @@ function formatBill(r: any) {
   }
 }
 
-router.get('/', async (req, res) => {
+router.get('/', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { month, type, categoryId, keyword } = req.query
-    let sql = 'SELECT * FROM bill WHERE 1=1'
-    const params: any[] = []
+    let sql = 'SELECT * FROM bill WHERE user_id = ?'
+    const params: any[] = [userId]
     if (month) {
       sql += ' AND date >= ? AND date <= ?'
       const [y, m] = String(month).split('-').map(Number)
@@ -46,12 +48,13 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { type, amount, categoryId, accountId, date, note } = req.body
     const [result] = await pool.query(
-      'INSERT INTO bill (type, amount, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?)',
-      [type, amount, categoryId, accountId, date, note || '']
+      'INSERT INTO bill (type, amount, category_id, account_id, date, note, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [type, amount, categoryId, accountId, date, note || '', userId]
     )
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
@@ -59,8 +62,9 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { id } = req.params
     const map: Record<string, string> = {
       type: 'type', amount: 'amount', categoryId: 'category_id',
@@ -73,24 +77,27 @@ router.put('/:id', async (req, res) => {
     }
     if (fields.length === 0) return res.json({ updated: 0 })
     values.push(id)
-    await pool.query(`UPDATE bill SET ${fields.join(', ')} WHERE id = ?`, values)
+    values.push(userId)
+    await pool.query(`UPDATE bill SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`, values)
     res.json({ updated: 1 })
   } catch (e: any) {
     res.status(500).json({ error: e.message })
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: AuthRequest, res) => {
   try {
-    await pool.query('DELETE FROM bill WHERE id = ?', [req.params.id])
+    const userId = req.userId!
+    await pool.query('DELETE FROM bill WHERE id = ? AND user_id = ?', [req.params.id, userId])
     res.json({ deleted: 1 })
   } catch (e: any) {
     res.status(500).json({ error: e.message })
   }
 })
 
-router.get('/stats/monthly', async (req, res) => {
+router.get('/stats/monthly', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { month } = req.query
     if (!month) return res.status(400).json({ error: 'month is required' })
     const [y, m] = String(month).split('-').map(Number)
@@ -98,8 +105,8 @@ router.get('/stats/monthly', async (req, res) => {
     const start = `${y}-${String(m).padStart(2, '0')}-01`
     const end = `${y}-${String(m).padStart(2, '0')}-${lastDay}`
     const [rows] = await pool.query(
-      `SELECT type, SUM(amount) as total FROM bill WHERE date >= ? AND date <= ? GROUP BY type`,
-      [start, end]
+      `SELECT type, SUM(amount) as total FROM bill WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY type`,
+      [userId, start, end]
     )
     let income = 0, expense = 0
     for (const r of rows as any[]) {
@@ -112,8 +119,9 @@ router.get('/stats/monthly', async (req, res) => {
   }
 })
 
-router.get('/stats/category', async (req, res) => {
+router.get('/stats/category', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { month, type } = req.query
     if (!month) return res.status(400).json({ error: 'month is required' })
     const [y, m] = String(month).split('-').map(Number)
@@ -123,9 +131,9 @@ router.get('/stats/category', async (req, res) => {
     const [rows] = await pool.query(
       `SELECT c.id as categoryId, c.name as categoryName, c.icon as categoryIcon, SUM(b.amount) as amount
        FROM bill b JOIN category c ON b.category_id = c.id
-       WHERE b.date >= ? AND b.date <= ? AND b.type = ?
+       WHERE b.user_id = ? AND b.date >= ? AND b.date <= ? AND b.type = ?
        GROUP BY b.category_id ORDER BY amount DESC`,
-      [start, end, type || 'expense']
+      [userId, start, end, type || 'expense']
     )
     const total = (rows as any[]).reduce((s, r) => s + Number(r.amount), 0)
     const result = (rows as any[]).map((r) => ({
@@ -141,8 +149,9 @@ router.get('/stats/category', async (req, res) => {
   }
 })
 
-router.get('/stats/daily', async (req, res) => {
+router.get('/stats/daily', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { month } = req.query
     if (!month) return res.status(400).json({ error: 'month is required' })
     const [y, m] = String(month).split('-').map(Number)
@@ -150,8 +159,8 @@ router.get('/stats/daily', async (req, res) => {
     const start = `${y}-${String(m).padStart(2, '0')}-01`
     const end = `${y}-${String(m).padStart(2, '0')}-${lastDay}`
     const [rows] = await pool.query(
-      `SELECT date, type, SUM(amount) as total FROM bill WHERE date >= ? AND date <= ? GROUP BY date, type ORDER BY date`,
-      [start, end]
+      `SELECT date, type, SUM(amount) as total FROM bill WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY date, type ORDER BY date`,
+      [userId, start, end]
     )
     const dailyMap = new Map<string, { date: string; income: number; expense: number }>()
     for (let d = 1; d <= lastDay; d++) {
@@ -172,14 +181,15 @@ router.get('/stats/daily', async (req, res) => {
   }
 })
 
-router.get('/stats/yearly', async (req, res) => {
+router.get('/stats/yearly', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { year } = req.query
     if (!year) return res.status(400).json({ error: 'year is required' })
     const y = Number(year)
     const [rows] = await pool.query(
-      `SELECT MONTH(date) as m, type, SUM(amount) as total FROM bill WHERE YEAR(date) = ? GROUP BY MONTH(date), type ORDER BY m`,
-      [y]
+      `SELECT MONTH(date) as m, type, SUM(amount) as total FROM bill WHERE user_id = ? AND YEAR(date) = ? GROUP BY MONTH(date), type ORDER BY m`,
+      [userId, y]
     )
     const monthMap = new Map<number, { month: string; income: number; expense: number }>()
     for (let i = 1; i <= 12; i++) {

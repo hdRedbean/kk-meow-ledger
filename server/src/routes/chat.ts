@@ -2,6 +2,7 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { pool } from '../db.js'
 import { chat, streamChat } from '../ai/index.js'
 import { chatRateLimitMeta } from '../ai/limiter.js'
+import { type AuthRequest } from '../auth.js'
 
 const router = Router()
 
@@ -38,12 +39,14 @@ function ipRateLimit(req: Request, res: Response, next: NextFunction): void {
   next()
 }
 
-router.get('/conversations', async (_req, res) => {
+router.get('/conversations', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const [rows] = await pool.query(
       `SELECT c.id, c.title, c.created_at, c.updated_at,
         (SELECT COUNT(*) FROM chat_message WHERE conversation_id = c.id) as message_count
-       FROM chat_conversation c ORDER BY c.updated_at DESC`
+       FROM chat_conversation c WHERE c.user_id = ? ORDER BY c.updated_at DESC`,
+      [userId]
     )
     res.json(rows)
   } catch (e: any) {
@@ -51,12 +54,13 @@ router.get('/conversations', async (_req, res) => {
   }
 })
 
-router.post('/conversations', async (req, res) => {
+router.post('/conversations', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { title } = req.body
     const [result] = await pool.query(
-      'INSERT INTO chat_conversation (title) VALUES (?)',
-      [title || '新对话']
+      'INSERT INTO chat_conversation (title, user_id) VALUES (?, ?)',
+      [title || '新对话', userId]
     )
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
@@ -64,17 +68,24 @@ router.post('/conversations', async (req, res) => {
   }
 })
 
-router.delete('/conversations/:id', async (req, res) => {
+router.delete('/conversations/:id', async (req: AuthRequest, res) => {
   try {
-    await pool.query('DELETE FROM chat_conversation WHERE id = ?', [req.params.id])
+    const userId = req.userId!
+    await pool.query('DELETE FROM chat_conversation WHERE id = ? AND user_id = ?', [req.params.id, userId])
     res.json({ deleted: 1 })
   } catch (e: any) {
     res.status(500).json({ error: e.message })
   }
 })
 
-router.get('/conversations/:id/messages', async (req, res) => {
+router.get('/conversations/:id/messages', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
+    const [convRows] = await pool.query('SELECT id FROM chat_conversation WHERE id = ? AND user_id = ?', [req.params.id, userId])
+    if ((convRows as any[]).length === 0) {
+      res.status(404).json({ error: '对话不存在' })
+      return
+    }
     const [rows] = await pool.query(
       'SELECT id, role, content, created_at FROM chat_message WHERE conversation_id = ? ORDER BY id ASC',
       [req.params.id]
@@ -90,14 +101,15 @@ router.get('/conversations/:id/messages', async (req, res) => {
   }
 })
 
-router.post('/', ipRateLimit, async (req, res) => {
+router.post('/', ipRateLimit, async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { message, conversationId } = req.body
     if (!message) return res.status(400).json({ error: 'message is required' })
 
     let convId = conversationId
     if (!convId) {
-      const [result] = await pool.query('INSERT INTO chat_conversation (title) VALUES (?)', [message.slice(0, 50)])
+      const [result] = await pool.query('INSERT INTO chat_conversation (title, user_id) VALUES (?, ?)', [message.slice(0, 50), userId])
       convId = (result as any).insertId
     }
 
@@ -134,7 +146,8 @@ router.post('/', ipRateLimit, async (req, res) => {
   }
 })
 
-router.post('/stream', ipRateLimit, async (req, res) => {
+router.post('/stream', ipRateLimit, async (req: AuthRequest, res) => {
+  const userId = req.userId!
   const { message, conversationId } = req.body
   if (!message) {
     res.status(400).json({ error: 'message is required' })
@@ -150,7 +163,7 @@ router.post('/stream', ipRateLimit, async (req, res) => {
   try {
     let convId = conversationId
     if (!convId) {
-      const [result] = await pool.query('INSERT INTO chat_conversation (title) VALUES (?)', [message.slice(0, 50)])
+      const [result] = await pool.query('INSERT INTO chat_conversation (title, user_id) VALUES (?, ?)', [message.slice(0, 50), userId])
       convId = (result as any).insertId
       res.write(`data: ${JSON.stringify({ type: 'conversationId', conversationId: convId })}\n\n`)
     }

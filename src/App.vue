@@ -5,6 +5,7 @@ import { useBillStore } from '@/stores/bill'
 import { useCategoryStore } from '@/stores/category'
 import { useAccountStore } from '@/stores/account'
 import { useBudgetStore } from '@/stores/budget'
+import { useAuthStore } from '@/stores/auth'
 import { useDevice } from '@/composables/useDevice'
 import AddBillPopup from '@/components/AddBillPopup.vue'
 
@@ -14,6 +15,7 @@ const billStore = useBillStore()
 const categoryStore = useCategoryStore()
 const accountStore = useAccountStore()
 const budgetStore = useBudgetStore()
+const authStore = useAuthStore()
 const { isMobile } = useDevice()
 
 const showAddBill = ref(false)
@@ -61,13 +63,22 @@ function onBillSaved() {
   billStore.version++
 }
 
+const tokens = ref(localStorage.getItem('token'))
+
 onMounted(async () => {
-  await Promise.all([
-    categoryStore.load(),
-    accountStore.load(),
-    budgetStore.load(),
-    billStore.load(),
-  ])
+  if (authStore.isLoggedIn) {
+    try {
+      await authStore.fetchMe()
+    } catch {
+      return
+    }
+    await Promise.all([
+      categoryStore.load(),
+      accountStore.load(),
+      budgetStore.load(),
+      billStore.load(),
+    ])
+  }
 })
 </script>
 
@@ -85,7 +96,9 @@ onMounted(async () => {
             <span>{{ tab.label }}</span>
           </button>
         </nav>
-        <button class="cat-btn add-btn-desktop" @click="openAddBill()">＋ 记一笔</button>
+        <div class="header-actions">
+          <button class="cat-btn add-btn-desktop" @click="openAddBill()">＋ 记一笔</button>
+        </div>
       </div>
     </header>
 
@@ -102,7 +115,7 @@ onMounted(async () => {
       </van-tabbar-item>
     </van-tabbar>
 
-    <button v-if="isMobile && activeTab !== 'chat'" class="mobile-fab" @click="openAddBill()">
+    <button v-if="tokens && isMobile && activeTab !== 'chat'" class="mobile-fab" @click="openAddBill()">
       <span class="fab-icon">✏️</span>
     </button>
   </div>

@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useBillStore } from '@/stores/bill'
-import { exportToJSON, exportToCSV, importFromJSON, importFromCSV } from '@/utils/export'
+import { useAuthStore } from '@/stores/auth'
+import { exportToJSON, exportToCSV } from '@/utils/export'
 import { showToast, showConfirmDialog } from 'vant'
 import CategoryManager from '@/components/CategoryManager.vue'
 import AccountManager from '@/components/AccountManager.vue'
 
+const router = useRouter()
 const billStore = useBillStore()
+const authStore = useAuthStore()
 const activeSection = ref<'category' | 'account' | 'data'>('category')
 
 async function handleExportJSON() {
@@ -27,45 +31,16 @@ async function handleExportCSV() {
   showToast('导出成功 🐱')
 }
 
-function triggerImport() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.json,.csv'
-  input.onchange = async (e: Event) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
-    if (!file) return
-    try {
-      const text = await file.text()
-      const bills = file.name.endsWith('.csv') ? importFromCSV(text) : importFromJSON(text)
-      if (bills.length === 0) {
-        showToast('文件中没有有效数据')
-        return
-      }
-      await showConfirmDialog({
-        title: '确认导入',
-        message: `将导入 ${bills.length} 条记录，是否继续？`,
-      })
-      for (const bill of bills) {
-        await billStore.add(bill)
-      }
-      showToast(`成功导入 ${bills.length} 条记录 🐱`)
-    } catch (err: any) {
-      showToast(`导入失败: ${err.message}`)
-    }
-  }
-  input.click()
-}
-
-async function clearAllData() {
+async function handleLogout() {
   try {
     await showConfirmDialog({
-      title: '危险操作',
-      message: '确认清除所有数据？此操作不可恢复！',
+      title: '退出登录',
+      message: '确定要退出当前账号吗？',
+      confirmButtonText: '退出',
+      cancelButtonText: '取消',
     })
-    for (const bill of billStore.bills) {
-      if (bill.id) await billStore.remove(bill.id)
-    }
-    showToast('数据已清除')
+    authStore.logout()
+    router.replace('/login')
   } catch { }
 }
 </script>
@@ -81,6 +56,20 @@ async function clearAllData() {
         <span class="title-icon">⚙️</span>
         <span class="title-text">设置</span>
       </h2>
+    </div>
+
+    <div class="user-card cat-card">
+      <div class="user-card-inner">
+        <span class="user-avatar">{{ authStore.nickname?.charAt(0) || '🐱' }}</span>
+        <div class="user-info">
+          <div class="user-nickname">{{ authStore.nickname || '未登录' }}</div>
+          <div class="user-username">@{{ authStore.user?.username || '--' }}</div>
+        </div>
+      </div>
+      <button class="cat-btn logout-btn" @click="handleLogout">
+        <span>🚪</span>
+        <span>退出登录</span>
+      </button>
     </div>
 
     <div class="section-tabs">
@@ -168,6 +157,68 @@ async function clearAllData() {
   min-height: 100vh;
   background: #FFF9F5;
   position: relative;
+}
+
+.user-card {
+  margin-top: 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF8B5E 0%, #FFB347 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-info {
+  min-width: 0;
+}
+
+.user-nickname {
+  font-size: 16px;
+  font-weight: 700;
+  color: #3D3D3D;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-username {
+  font-size: 13px;
+  color: #8C8C8C;
+  margin-top: 2px;
+}
+
+.logout-btn {
+  background: linear-gradient(135deg, #F28B82 0%, #E07B72 100%);
+  box-shadow: 0 4px 12px rgba(242, 139, 130, 0.2);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 10px 18px;
+  font-size: 13px;
+}
+
+.logout-btn:hover {
+  transform: scale(1.02);
 }
 
 .page-header {

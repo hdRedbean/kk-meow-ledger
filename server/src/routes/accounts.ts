@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
+import { type AuthRequest } from '../auth.js'
 
 const router = Router()
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req: AuthRequest, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM account ORDER BY id ASC')
-    const [billRows] = await pool.query('SELECT account_id, type, amount FROM bill')
+    const userId = req.userId!
+    const [rows] = await pool.query('SELECT * FROM account WHERE user_id = ? ORDER BY id ASC', [userId])
+    const [billRows] = await pool.query('SELECT account_id, type, amount FROM bill WHERE user_id = ?', [userId])
     const balanceMap = new Map<number, number>()
     for (const b of billRows as any[]) {
       const cur = balanceMap.get(b.account_id) || 0
@@ -25,12 +27,13 @@ router.get('/', async (_req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { name, icon } = req.body
     const [result] = await pool.query(
-      'INSERT INTO account (name, icon, is_preset) VALUES (?, ?, 0)',
-      [name, icon]
+      'INSERT INTO account (name, icon, is_preset, user_id) VALUES (?, ?, 0, ?)',
+      [name, icon, userId]
     )
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
@@ -38,8 +41,9 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId!
     const { id } = req.params
     const fields: string[] = []
     const values: any[] = []
@@ -47,16 +51,18 @@ router.put('/:id', async (req, res) => {
     if (req.body.icon !== undefined) { fields.push('icon = ?'); values.push(req.body.icon) }
     if (fields.length === 0) return res.json({ updated: 0 })
     values.push(id)
-    await pool.query(`UPDATE account SET ${fields.join(', ')} WHERE id = ?`, values)
+    values.push(userId)
+    await pool.query(`UPDATE account SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`, values)
     res.json({ updated: 1 })
   } catch (e: any) {
     res.status(500).json({ error: e.message })
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: AuthRequest, res) => {
   try {
-    await pool.query('DELETE FROM account WHERE id = ?', [req.params.id])
+    const userId = req.userId!
+    await pool.query('DELETE FROM account WHERE id = ? AND user_id = ?', [req.params.id, userId])
     res.json({ deleted: 1 })
   } catch (e: any) {
     res.status(500).json({ error: e.message })
