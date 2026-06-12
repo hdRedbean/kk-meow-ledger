@@ -18,7 +18,7 @@ const chatListRef = ref<HTMLDivElement>()
 async function loadConversations() {
   try {
     conversations.value = await api.getConversations()
-  } catch {}
+  } catch { }
 }
 
 async function selectConversation(id: number) {
@@ -35,7 +35,7 @@ async function newConversation() {
     messages.value = []
     showSidebar.value = false
     await loadConversations()
-  } catch {}
+  } catch { }
 }
 
 async function deleteConversation(id: number) {
@@ -46,7 +46,7 @@ async function deleteConversation(id: number) {
       messages.value = []
     }
     await loadConversations()
-  } catch {}
+  } catch { }
 }
 
 async function sendMessage() {
@@ -117,6 +117,7 @@ onMounted(loadConversations)
 
 <template>
   <div class="chat-page">
+    <div class="mask" v-if="showSidebar" @click="showSidebar = !showSidebar"></div>
     <div :class="['sidebar', { open: showSidebar }]">
       <div class="sidebar-header">
         <div class="header-left">
@@ -129,12 +130,8 @@ onMounted(loadConversations)
         </button>
       </div>
       <div class="conv-list">
-        <div
-          v-for="conv in conversations"
-          :key="conv.id"
-          :class="['conv-item', { active: activeConvId === conv.id }]"
-          @click="selectConversation(conv.id)"
-        >
+        <div v-for="conv in conversations" :key="conv.id" :class="['conv-item', { active: activeConvId === conv.id }]"
+          @click="selectConversation(conv.id)">
           <span class="conv-icon">💬</span>
           <span class="conv-title">{{ conv.title }}</span>
           <button class="conv-delete" @click.stop="deleteConversation(conv.id)">
@@ -165,40 +162,27 @@ onMounted(loadConversations)
 
       <div ref="chatListRef" class="chat-list">
         <template v-if="messages.length > 0">
-          <ChatBubble
-            v-for="msg in messages.slice(0, -1)"
-            :key="msg.id"
-            :role="msg.role"
-            :content="msg.content"
-          />
-          <ChatBubble
-            v-if="messages.length > 0"
-            :role="messages[messages.length - 1].role"
-            :content="messages[messages.length - 1].content"
-            :loading="isLoading"
-          />
+          <ChatBubble v-for="msg in messages.slice(0, -1)" :key="msg.id" :role="msg.role" :content="msg.content" />
+          <ChatBubble v-if="messages.length > 0" :role="messages[messages.length - 1].role"
+            :content="messages[messages.length - 1].content" :loading="isLoading" />
         </template>
         <div v-else class="empty-chat">
           <div class="empty-icon-wrapper">
             <span class="empty-icon">😺</span>
-            <div class="pawprints">
-              <span class="paw">🐾</span>
-              <span class="paw">🐾</span>
-            </div>
           </div>
-          <p class="empty-text">开始和喵喵助手聊天吧~</p>
+          <p class="empty-text">开始和喵喵助手聊天吧~ 试试问我：</p>
+          <div class="welcome-suggestions">
+            <button class="suggestion" @click="inputText = '这个月花了多少钱？'; sendMessage()">这个月花了多少钱？</button>
+            <button class="suggestion" @click="inputText = '本月餐饮支出多少？'; sendMessage()">本月餐饮支出多少？</button>
+            <button class="suggestion" @click="inputText = '帮我记一笔餐饮支出50元'; sendMessage()">帮我记一笔餐饮支出50元</button>
+            <button class="suggestion" @click="inputText = '预算还剩多少？'; sendMessage()">预算还剩多少？</button>
+          </div>
         </div>
       </div>
 
       <div class="chat-input-area">
         <div class="input-wrapper">
-          <textarea
-            v-model="inputText"
-            class="chat-input"
-            placeholder="输入消息..."
-            rows="1"
-            @keydown="handleKeydown"
-          />
+          <textarea v-model="inputText" class="chat-input" placeholder="输入消息..." rows="1" @keydown="handleKeydown" />
           <button class="send-btn" :disabled="!inputText.trim() || isLoading" @click="sendMessage">
             <span class="send-icon">🚀</span>
           </button>
@@ -209,6 +193,15 @@ onMounted(loadConversations)
 </template>
 
 <style scoped>
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 11;
+}
+
 .chat-page {
   display: flex;
   height: 100vh;
@@ -235,7 +228,7 @@ onMounted(loadConversations)
     transform: translateX(-100%);
     height: 100%;
   }
-  
+
   .sidebar.open {
     transform: translateX(0);
   }
@@ -385,6 +378,29 @@ onMounted(loadConversations)
   font-size: 14px;
   color: #8C8C8C;
   font-weight: 500;
+}
+
+.welcome-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestion {
+  padding: 10px 18px;
+  border-radius: 16px;
+  border: 1.5px solid var(--cat-border);
+  background: var(--cat-card);
+  font-size: 13px;
+  color: var(--cat-text);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.suggestion:hover {
+  border-color: var(--cat-accent);
+  background: var(--cat-accent-light);
 }
 
 .chat-main {
@@ -547,7 +563,14 @@ onMounted(loadConversations)
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
 }
 </style>
