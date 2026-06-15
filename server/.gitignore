@@ -6,3 +6,4 @@ node_modules/
 dist/
 # 忽略日志目录
 logs/
+*.env
