@@ -17,6 +17,22 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token')
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        next({ name: 'login' })
+        return
+      }
+    } catch {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      next({ name: 'login' })
+      return
+    }
+  }
   if (!to.meta.guest && !token) {
     next({ name: 'login' })
   } else if (to.meta.guest && token) {

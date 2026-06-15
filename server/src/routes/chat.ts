@@ -52,7 +52,7 @@ router.get('/conversations', async (req: AuthRequest, res) => {
     res.json(rows)
   } catch (e: any) {
     logger.error(`对话列表异常: userId=${(req as AuthRequest).userId} ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '获取对话列表失败，请稍后重试' })
   }
 })
 
@@ -67,7 +67,7 @@ router.post('/conversations', async (req: AuthRequest, res) => {
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
     logger.error(`创建对话异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '创建对话失败，请稍后重试' })
   }
 })
 
@@ -78,7 +78,7 @@ router.delete('/conversations/:id', async (req: AuthRequest, res) => {
     res.json({ deleted: 1 })
   } catch (e: any) {
     logger.error(`删除对话异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '删除对话失败，请稍后重试' })
   }
 })
 
@@ -102,7 +102,7 @@ router.get('/conversations/:id/messages', async (req: AuthRequest, res) => {
     })))
   } catch (e: any) {
     logger.error(`获取消息异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '获取消息失败，请稍后重试' })
   }
 })
 
@@ -113,6 +113,13 @@ router.post('/', ipRateLimit, async (req: AuthRequest, res) => {
     if (!message) return res.status(400).json({ error: 'message is required' })
 
     let convId = conversationId
+    if (convId) {
+      const [convRows] = await pool.query('SELECT id FROM chat_conversation WHERE id = ? AND user_id = ?', [convId, userId])
+      if ((convRows as any[]).length === 0) {
+        res.status(403).json({ error: '对话不存在或无权访问' })
+        return
+      }
+    }
     if (!convId) {
       const [result] = await pool.query('INSERT INTO chat_conversation (title, user_id) VALUES (?, ?)', [message.slice(0, 50), userId])
       convId = (result as any).insertId
@@ -147,7 +154,7 @@ router.post('/', ipRateLimit, async (req: AuthRequest, res) => {
     })
   } catch (e: any) {
     logger.error(`对话异常: userId=${req.userId} ${e.message}`)
-    res.status(500).json({ error: e.message || 'AI service error' })
+    res.status(500).json({ error: '对话服务异常，请稍后重试' })
   }
 })
 
@@ -159,6 +166,15 @@ router.post('/stream', ipRateLimit, async (req: AuthRequest, res) => {
     return
   }
 
+  let convId = conversationId
+  if (convId) {
+    const [convRows] = await pool.query('SELECT id FROM chat_conversation WHERE id = ? AND user_id = ?', [convId, userId])
+    if ((convRows as any[]).length === 0) {
+      res.status(403).json({ error: '对话不存在或无权访问' })
+      return
+    }
+  }
+
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
@@ -166,7 +182,6 @@ router.post('/stream', ipRateLimit, async (req: AuthRequest, res) => {
   res.flushHeaders()
 
   try {
-    let convId = conversationId
     if (!convId) {
       const [result] = await pool.query('INSERT INTO chat_conversation (title, user_id) VALUES (?, ?)', [message.slice(0, 50), userId])
       convId = (result as any).insertId
@@ -201,7 +216,7 @@ router.post('/stream', ipRateLimit, async (req: AuthRequest, res) => {
     res.end()
   } catch (e: any) {
     logger.error(`流式对话异常: userId=${req.userId} ${e.message}`)
-    res.write(`data: ${JSON.stringify({ type: 'error', error: e.message || 'AI service error' })}\n\n`)
+    res.write(`data: ${JSON.stringify({ type: 'error', error: 'AI服务异常，请稍后重试' })}\n\n`)
     res.end()
   }
 })

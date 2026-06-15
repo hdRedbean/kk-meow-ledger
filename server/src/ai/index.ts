@@ -168,11 +168,14 @@ async function executeTool(name: string, args: Record<string, any>, userId: numb
 
     case 'add_bill': {
       const { type, amount, categoryName, accountName = '微信', date, note = '' } = args
+      if (!['income', 'expense'].includes(type)) return { error: 'type 必须为 income 或 expense' }
+      if (typeof amount !== 'number' || amount <= 0) return { error: 'amount 必须为正数' }
       const [catRows] = await pool.query('SELECT id FROM category WHERE user_id = ? AND name = ? LIMIT 1', [userId, categoryName])
       if ((catRows as any[]).length === 0) return { error: `未找到分类"${categoryName}"` }
       const categoryId = (catRows as any[])[0].id
       const [accRows] = await pool.query('SELECT id FROM account WHERE user_id = ? AND name = ? LIMIT 1', [userId, accountName])
-      const accountId = (accRows as any[]).length > 0 ? (accRows as any[])[0].id : 1
+      if ((accRows as any[]).length === 0) return { error: `未找到账户"${accountName}"` }
+      const accountId = (accRows as any[])[0].id
       const billDate = date || new Date().toISOString().slice(0, 10)
       const [result] = await pool.query(
         'INSERT INTO bill (type, amount, category_id, account_id, date, note, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',

@@ -280,3 +280,6 @@ export const getMe = () =>
 
 export const updateProfile = (data: { nickname?: string; avatar?: string }) =>
   http.put('/auth/profile', data).then((r) => r.data)
+
+export const changePassword = (data: { oldPassword: string; newPassword: string }) =>
+  http.post<{ success: boolean }>('/auth/change-password', data).then((r) => r.data)

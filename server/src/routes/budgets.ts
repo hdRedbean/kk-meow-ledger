@@ -21,7 +21,7 @@ router.get('/', async (req: AuthRequest, res) => {
     })))
   } catch (e: any) {
     logger.error(`预算操作异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '预算操作失败，请稍后重试' })
   }
 })
 
@@ -35,7 +35,7 @@ router.post('/', async (req: AuthRequest, res) => {
     )
     if ((existing as any[]).length > 0) {
       const id = (existing as any[])[0].id
-      await pool.query('UPDATE budget SET amount = ? WHERE id = ?', [amount, id])
+      await pool.query('UPDATE budget SET amount = ? WHERE id = ? AND user_id = ?', [amount, id, userId])
       res.json({ id })
     } else {
       const [result] = await pool.query(
@@ -46,7 +46,7 @@ router.post('/', async (req: AuthRequest, res) => {
     }
   } catch (e: any) {
     logger.error(`预算操作异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '预算操作失败，请稍后重试' })
   }
 })
 
@@ -57,7 +57,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     res.json({ deleted: 1 })
   } catch (e: any) {
     logger.error(`预算操作异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '预算操作失败，请稍后重试' })
   }
 })
 

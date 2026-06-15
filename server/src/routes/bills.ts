@@ -46,7 +46,7 @@ router.get('/', async (req: AuthRequest, res) => {
     res.json((rows as any[]).map(formatBill))
   } catch (e: any) {
     logger.error(`查询账单异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 
@@ -54,6 +54,24 @@ router.post('/', async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!
     const { type, amount, categoryId, accountId, date, note } = req.body
+    if (!type || !['income', 'expense'].includes(type)) {
+      res.status(400).json({ error: 'type 必须为 income 或 expense' })
+      return
+    }
+    if (typeof amount !== 'number' || amount <= 0) {
+      res.status(400).json({ error: 'amount 必须为正数' })
+      return
+    }
+    const [catRows] = await pool.query('SELECT id FROM category WHERE id = ? AND user_id = ?', [categoryId, userId])
+    if ((catRows as any[]).length === 0) {
+      res.status(400).json({ error: '分类不存在或不属于当前用户' })
+      return
+    }
+    const [accRows] = await pool.query('SELECT id FROM account WHERE id = ? AND user_id = ?', [accountId, userId])
+    if ((accRows as any[]).length === 0) {
+      res.status(400).json({ error: '账户不存在或不属于当前用户' })
+      return
+    }
     const [result] = await pool.query(
       'INSERT INTO bill (type, amount, category_id, account_id, date, note, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [type, amount, categoryId, accountId, date, note || '', userId]
@@ -62,7 +80,7 @@ router.post('/', async (req: AuthRequest, res) => {
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
     logger.error(`创建账单异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 
@@ -86,7 +104,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
     res.json({ updated: 1 })
   } catch (e: any) {
     logger.error(`更新账单异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 
@@ -98,7 +116,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     res.json({ deleted: 1 })
   } catch (e: any) {
     logger.error(`删除账单异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 
@@ -123,7 +141,7 @@ router.get('/stats/monthly', async (req: AuthRequest, res) => {
     res.json({ income, expense, balance: income - expense })
   } catch (e: any) {
     logger.error(`月度统计异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 
@@ -154,7 +172,7 @@ router.get('/stats/category', async (req: AuthRequest, res) => {
     res.json(result)
   } catch (e: any) {
     logger.error(`分类统计异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 
@@ -187,7 +205,7 @@ router.get('/stats/daily', async (req: AuthRequest, res) => {
     res.json(Array.from(dailyMap.values()))
   } catch (e: any) {
     logger.error(`每日统计异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 
@@ -215,7 +233,7 @@ router.get('/stats/yearly', async (req: AuthRequest, res) => {
     res.json(Array.from(monthMap.values()))
   } catch (e: any) {
     logger.error(`年度统计异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '查询账单失败，请稍后重试' })
   }
 })
 

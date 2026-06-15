@@ -28,7 +28,7 @@ router.get('/', async (req: AuthRequest, res) => {
     res.json(categories)
   } catch (e: any) {
     logger.error(`分类操作异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '分类操作失败，请稍后重试' })
   }
 })
 
@@ -43,7 +43,7 @@ router.post('/', async (req: AuthRequest, res) => {
     res.json({ id: (result as any).insertId })
   } catch (e: any) {
     logger.error(`分类操作异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '分类操作失败，请稍后重试' })
   }
 })
 
@@ -70,7 +70,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
     res.json({ updated: 1 })
   } catch (e: any) {
     logger.error(`分类操作异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '分类操作失败，请稍后重试' })
   }
 })
 
@@ -81,7 +81,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     res.json({ deleted: 1 })
   } catch (e: any) {
     logger.error(`分类操作异常: ${e.message}`)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: '分类操作失败，请稍后重试' })
   }
 })
 
