@@ -1,7 +1,5 @@
 server
 mysql_data
 *.sql
-front-web-1/node_modules
-front-web-2/node_modules
-server/node_modules
+**/node_modules/
 .git
