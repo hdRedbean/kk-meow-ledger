@@ -17,6 +17,8 @@ const SYSTEM_PROMPT = `你是喵喵记账的AI助手🐱，可以帮助用户查
 - 用友好、简洁的语气回答，适当使用emoji
 
 规则：
+- 只负责当前用户的事情，不能涉及其他用户，任何理由都不行，核心规则之一
+- 用户询问不相关的内容，请有礼貌有理由的拒绝回答他，核心规则之一
 - 金额显示时保留两位小数，使用 ¥ 符号
 - 当前日期用于推算"本月"、"今年"等时间范围
 - 如果用户意图模糊，主动询问确认
@@ -26,15 +28,15 @@ const SYSTEM_PROMPT = `你是喵喵记账的AI助手🐱，可以帮助用户查
 
 type ToolCall = { id: string; function: { name: string; arguments: string } }
 
-async function executeTool(name: string, args: Record<string, any>): Promise<any> {
+async function executeTool(name: string, args: Record<string, any>, userId: number): Promise<any> {
   switch (name) {
     case 'get_month_summary': {
       const { month } = args
       const [y, m] = month.split('-').map(Number)
       const lastDay = new Date(y, m, 0).getDate()
       const [rows] = await pool.query(
-        `SELECT type, SUM(amount) as total FROM bill WHERE date >= ? AND date <= ? GROUP BY type`,
-        [`${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`]
+        `SELECT type, SUM(amount) as total FROM bill WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY type`,
+        [userId, `${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`]
       )
       let income = 0, expense = 0
       for (const r of rows as any[]) {
@@ -51,9 +53,9 @@ async function executeTool(name: string, args: Record<string, any>): Promise<any
       const [rows] = await pool.query(
         `SELECT c.name, c.icon, SUM(b.amount) as amount
          FROM bill b JOIN category c ON b.category_id = c.id
-         WHERE b.date >= ? AND b.date <= ? AND b.type = ?
+         WHERE b.user_id = ? AND b.date >= ? AND b.date <= ? AND b.type = ?
          GROUP BY b.category_id ORDER BY amount DESC`,
-        [`${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`, type]
+        [userId, `${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`, type]
       )
       const total = (rows as any[]).reduce((s, r) => s + Number(r.amount), 0)
       return (rows as any[]).map((r) => ({
@@ -68,8 +70,8 @@ async function executeTool(name: string, args: Record<string, any>): Promise<any
       const [y, m] = month.split('-').map(Number)
       const lastDay = new Date(y, m, 0).getDate()
       const [rows] = await pool.query(
-        `SELECT date, type, SUM(amount) as total FROM bill WHERE date >= ? AND date <= ? GROUP BY date, type ORDER BY date`,
-        [`${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`]
+        `SELECT date, type, SUM(amount) as total FROM bill WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY date, type ORDER BY date`,
+        [userId, `${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`]
       )
       const result: { date: string; income: number; expense: number }[] = []
       for (let d = 1; d <= lastDay; d++) {
@@ -87,8 +89,8 @@ async function executeTool(name: string, args: Record<string, any>): Promise<any
     case 'get_yearly_trend': {
       const { year } = args
       const [rows] = await pool.query(
-        `SELECT MONTH(date) as m, type, SUM(amount) as total FROM bill WHERE YEAR(date) = ? GROUP BY MONTH(date), type ORDER BY m`,
-        [year]
+        `SELECT MONTH(date) as m, type, SUM(amount) as total FROM bill WHERE user_id = ? AND YEAR(date) = ? GROUP BY MONTH(date), type ORDER BY m`,
+        [userId, year]
       )
       const result = Array.from({ length: 12 }, (_, i) => ({ month: `${i + 1}月`, income: 0, expense: 0 }))
       for (const r of rows as any[]) {
@@ -100,8 +102,8 @@ async function executeTool(name: string, args: Record<string, any>): Promise<any
 
     case 'get_bills': {
       const { month, type, categoryName, keyword, limit = 20 } = args
-      let sql = 'SELECT b.*, c.name as category_name, c.icon as category_icon FROM bill b JOIN category c ON b.category_id = c.id WHERE 1=1'
-      const params: any[] = []
+      let sql = 'SELECT b.*, c.name as category_name, c.icon as category_icon FROM bill b JOIN category c ON b.category_id = c.id WHERE b.user_id = ?'
+      const params: any[] = [userId]
       if (month) {
         const [y, m] = month.split('-').map(Number)
         const lastDay = new Date(y, m, 0).getDate()
@@ -124,12 +126,12 @@ async function executeTool(name: string, args: Record<string, any>): Promise<any
 
     case 'get_budget_status': {
       const { month } = args
-      const [budgetRows] = await pool.query('SELECT * FROM budget WHERE month = ?', [month])
+      const [budgetRows] = await pool.query('SELECT * FROM budget WHERE user_id = ? AND month = ?', [userId, month])
       const [y, m] = month.split('-').map(Number)
       const lastDay = new Date(y, m, 0).getDate()
       const [billRows] = await pool.query(
-        `SELECT category_id, SUM(amount) as total FROM bill WHERE date >= ? AND date <= ? AND type = 'expense' GROUP BY category_id`,
-        [`${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`]
+        `SELECT category_id, SUM(amount) as total FROM bill WHERE user_id = ? AND date >= ? AND date <= ? AND type = 'expense' GROUP BY category_id`,
+        [userId, `${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`]
       )
       const spendMap = new Map<number, number>()
       let totalExpense = 0
@@ -157,31 +159,31 @@ async function executeTool(name: string, args: Record<string, any>): Promise<any
       const [rows] = await pool.query(
         `SELECT c.name, c.icon, SUM(b.amount) as amount
          FROM bill b JOIN category c ON b.category_id = c.id
-         WHERE b.date >= ? AND b.date <= ? AND b.type = 'expense'
+         WHERE b.user_id = ? AND b.date >= ? AND b.date <= ? AND b.type = 'expense'
          GROUP BY b.category_id ORDER BY amount DESC LIMIT ?`,
-        [`${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`, topN]
+        [userId, `${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDay}`, topN]
       )
       return (rows as any[]).map((r) => ({ name: r.name, icon: r.icon, amount: Number(r.amount) }))
     }
 
     case 'add_bill': {
       const { type, amount, categoryName, accountName = '微信', date, note = '' } = args
-      const [catRows] = await pool.query('SELECT id FROM category WHERE name = ? LIMIT 1', [categoryName])
+      const [catRows] = await pool.query('SELECT id FROM category WHERE user_id = ? AND name = ? LIMIT 1', [userId, categoryName])
       if ((catRows as any[]).length === 0) return { error: `未找到分类"${categoryName}"` }
       const categoryId = (catRows as any[])[0].id
-      const [accRows] = await pool.query('SELECT id FROM account WHERE name = ? LIMIT 1', [accountName])
+      const [accRows] = await pool.query('SELECT id FROM account WHERE user_id = ? AND name = ? LIMIT 1', [userId, accountName])
       const accountId = (accRows as any[]).length > 0 ? (accRows as any[])[0].id : 1
       const billDate = date || new Date().toISOString().slice(0, 10)
       const [result] = await pool.query(
-        'INSERT INTO bill (type, amount, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?)',
-        [type, amount, categoryId, accountId, billDate, note]
+        'INSERT INTO bill (type, amount, category_id, account_id, date, note, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [type, amount, categoryId, accountId, billDate, note, userId]
       )
       return { success: true, id: (result as any).insertId, type, amount, categoryName, date: billDate }
     }
 
     case 'get_account_balance': {
-      const [accRows] = await pool.query('SELECT * FROM account ORDER BY id')
-      const [billRows] = await pool.query('SELECT account_id, type, SUM(amount) as total FROM bill GROUP BY account_id, type')
+      const [accRows] = await pool.query('SELECT * FROM account WHERE user_id = ? ORDER BY id', [userId])
+      const [billRows] = await pool.query('SELECT account_id, type, SUM(amount) as total FROM bill WHERE user_id = ? GROUP BY account_id, type', [userId])
       const balanceMap = new Map<number, { income: number; expense: number }>()
       for (const b of billRows as any[]) {
         if (!balanceMap.has(b.account_id)) balanceMap.set(b.account_id, { income: 0, expense: 0 })
@@ -200,7 +202,7 @@ async function executeTool(name: string, args: Record<string, any>): Promise<any
   }
 }
 
-export async function chat(userMessage: string, history: { role: string; content: string }[]): Promise<{
+export async function chat(userMessage: string, history: { role: string; content: string }[], userId: number): Promise<{
   assistantContent: string
   toolCallsLog: { name: string; args: any; result: any }[]
 }> {
@@ -226,7 +228,7 @@ export async function chat(userMessage: string, history: { role: string; content
 
       for (const tc of msg.tool_calls as ToolCall[]) {
         const args = JSON.parse(tc.function.arguments)
-        const result = await executeTool(tc.function.name, args)
+        const result = await executeTool(tc.function.name, args, userId)
         toolCallsLog.push({ name: tc.function.name, args, result })
         messages.push({
           role: 'tool',
@@ -249,6 +251,7 @@ export async function streamChat(
   userMessage: string,
   history: { role: string; content: string }[],
   onChunk: (text: string) => void,
+  userId: number,
 ): Promise<string> {
   const messages = buildMessages(userMessage, history)
 
@@ -304,7 +307,7 @@ export async function streamChat(
 
     for (const tc of toolCalls) {
       const args = JSON.parse(tc.arguments)
-      const result = await executeTool(tc.name, args)
+      const result = await executeTool(tc.name, args, userId)
       messages.push({
         role: 'tool',
         tool_call_id: tc.id,

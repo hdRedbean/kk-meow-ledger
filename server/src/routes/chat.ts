@@ -129,7 +129,7 @@ router.post('/', ipRateLimit, async (req: AuthRequest, res) => {
     )
     const history = (historyRows as any[]).map((r) => ({ role: r.role, content: r.content }))
 
-    const { assistantContent } = await chat(message, history.slice(0, -1))
+    const { assistantContent } = await chat(message, history.slice(0, -1), userId)
 
     await pool.query(
       'INSERT INTO chat_message (conversation_id, role, content) VALUES (?, ?, ?)',
@@ -186,7 +186,7 @@ router.post('/stream', ipRateLimit, async (req: AuthRequest, res) => {
 
     const fullContent = await streamChat(message, history, (text) => {
       res.write(`data: ${JSON.stringify({ type: 'chunk', content: text })}\n\n`)
-    })
+    }, userId)
 
     await pool.query(
       'INSERT INTO chat_message (conversation_id, role, content) VALUES (?, ?, ?)',
